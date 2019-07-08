@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "target": "es5",
+    "lib": ["es2015", "es2016", "dom"],
+    "rootDir": "./",
+    "moduleResolution": "Node",
+    "module": "CommonJS",
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "sourceMap": true,
+    "jsx": "react",
+    "declaration": true,
+    "resolveJsonModule": true,
+    "strictNullChecks": true,
+    "importHelpers": true
+
+  }
+}
