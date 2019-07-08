@@ -9,7 +9,7 @@ const log = debug('fd')
 const depslog = debug('fd:deps')
 const tlog = debug('fd:traverse')
 
-const core = new Set(['fs', 'path', 'http', 'child_process', 'util'])
+const core = new Set(['fs', 'path', 'url', 'http', 'child_process', 'util'])
 
 type Filename = string
 
