@@ -2,12 +2,16 @@
   "name": "filter-dependent",
   "version": "1.0.0",
   "description": "Filters a list of files, leaving only those which transitively dependent on any of the files from the second list",
-  "main": "index.js",
   "author": "Diokuz",
   "license": "MIT",
   "dependencies": {
-    "dependency-tree": "^7.0.2",
-    "glob": "^7.1.4",
+    "@types/node": "^12.0.12",
     "precinct": "^6.1.2"
+  },
+  "devDependencies": {
+    "debug": "^4.1.1",
+    "jest": "^24.8.0",
+    "prettier": "1.18.2",
+    "ts-jest": "^24.0.2"
   }
 }
