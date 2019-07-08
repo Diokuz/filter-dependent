@@ -9,18 +9,26 @@ Filters a list of files, leaving only those which transitively dependent on any 
 
 ## Example
 
-Lets say we have four files: `a.js` depends on `b.js`, which depends on `c.js`, which depends on `.d.js`. Then:
+Lets say we have four files:
+
+1. `a.js` depends on `b.js` and `c.js`
+2. `b.js` depends on `d.js`
+
+Then:
 
 ```js
-import { filterDependent } from 'filter-dependent'
+import filterDependent from 'filter-dependent'
 
 const filteredFiles = filterDependent([
     './a.js',
     './b.js',
+    './c.js',
     './d.js',
 ], [
-    'c.js'.
+    'a.js',
+    'c.js',
 ])
 
-// → ['/abs/path/to/a.js', '/abs/path/to/b.js']
+// → ['/abs/path/to/a.js', '/abs/path/to/b.js', '/abs/path/to/c.js']
+// because `d.js` does not depend on `c.js` nor `a.js`
 ```
