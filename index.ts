@@ -1,37 +1,28 @@
-/*
- * Атеншен!
- * Этот пакет, на данный момент, работат весьма неоптимально, но всё же быстро.
- * Что можно ускорить:
- * 1. Строить дерево зависимостей не на каждый файл, а сразу на все
- * 2. Завершать traverse дерева в тот момент, когда мы уткнулись в один из targetFiles
- * 3. Переписать всё на компилируемый язык программирования
- */
+const fs = require('fs')
+const path = require('path')
+const precinct = require('precinct')
+const resolve = require('resolve')
 
-const fs = require("fs");
-const path = require("path");
-const { execSync } = require("child_process");
-const precinct = require("precinct");
-const cabinet = require("filing-cabinet");
+const debug = require('debug')
 
-const debug = require("debug");
+const log = debug('fd')
+const depslog = debug('fd:deps')
+const tlog = debug('fd:traverse')
 
-const log = debug("fd");
-const depslog = debug("fd:deps");
-const tlog = debug("fd:traverse");
+const core = new Set(['fs', 'path', 'http', 'child_process', 'util'])
 
-const core = new Set(["fs", "path", "http", "child_process", "util"]);
-
-type Filename = string;
+type Filename = string
 
 type Tree = {
-  parents?: Set<Tree>;
-  children: Record<Filename, Tree>;
-  value: Filename;
-};
+  parents?: Set<Tree>
+  children: Record<Filename, Tree>
+  value: Filename
+}
 
 type Options = {
-  tsConfig?: Filename;
-};
+  tsConfig?: Filename
+  extensions?: string[]
+}
 
 /*
  * Takes two array of files, and returns filtered version of the first one.
@@ -45,49 +36,41 @@ type Options = {
  * filterDependent(['a.js', 'd.js'], ['b.ts'])
  *  –> ['a.js']
  */
-function filterDependent(
-  sourceFiles: string[],
-  targetFiles: string[],
-  options: Options = {}
-): string[] {
-  const map = new Map();
-  const rootNode = Object.create(null);
+function filterDependent(sourceFiles: string[], targetFiles: string[], options: Options = {}): string[] {
+  const map = new Map()
+  const rootNode = Object.create(null)
 
   // resolving abs and symlinks
-  const sources = sourceFiles.map((f: string) =>
-    fs.realpathSync(path.resolve(f))
-  );
-  const targets = targetFiles.map((f: string) =>
-    fs.realpathSync(path.resolve(f))
-  );
-  const deadends = new Set(targets);
+  const sources = sourceFiles.map((f: string) => fs.realpathSync(path.resolve(f)))
+  const targets = targetFiles.map((f: string) => fs.realpathSync(path.resolve(f)))
+  const deadends = new Set(targets)
 
   const result = sources.filter((s: Filename) => {
     const fnode = {
       // parents: never, // no link to the pseodu tree's root
       children: Object.create(null),
-      value: s
-    };
+      value: s,
+    }
 
-    rootNode[s] = fnode;
+    rootNode[s] = fnode
 
-    return hasSomeTransitiveDeps(s, deadends, fnode, map, options);
-  });
+    return hasSomeTransitiveDeps(s, deadends, fnode, map, options)
+  })
 
-  return result;
+  return result
 }
 
 function markParentsAsDeadends(subtree: Tree, deadends: Set<Filename>): void {
   if (!subtree) {
-    console.trace();
+    console.trace()
   }
-  if (typeof subtree.parents === "undefined") {
-    return;
+  if (typeof subtree.parents === 'undefined') {
+    return
   }
 
   for (let parent of subtree.parents) {
-    deadends.add(parent.value);
-    markParentsAsDeadends(parent, deadends);
+    deadends.add(parent.value)
+    markParentsAsDeadends(parent, deadends)
   }
 }
 
@@ -103,96 +86,77 @@ function hasSomeTransitiveDeps(
   map: Map<Filename, Tree>,
   options: Options
 ) {
-  tlog(`Start of process "${filename}"`, subtree);
+  tlog(`Start of process "${filename}"`, subtree)
 
   if (deadends.has(filename)) {
-    markParentsAsDeadends(subtree, deadends);
+    markParentsAsDeadends(subtree, deadends)
 
-    tlog(`Deadend reached, returning true`);
+    tlog(`Deadend reached, returning true`)
 
-    return true;
+    return true
   }
 
   // map.set for any filename must be called only after this if
   if (map.has(filename)) {
-    tlog(`Already processed, returning`);
+    tlog(`Already processed, returning`)
 
-    return deadends.has(filename);
+    return deadends.has(filename)
   }
 
-  map.set(filename, subtree);
+  map.set(filename, subtree)
 
-  const deps = getDeps(filename, options);
+  const deps = getDeps(filename, options)
   const result = deps.some((dep: Filename) => {
-    const parentnode = subtree;
+    const parentnode = subtree
     const fnode: Tree = map.has(dep)
       ? (map.get(dep) as Tree)
       : {
           parents: new Set(),
           children: Object.create(null),
-          value: dep
-        };
+          value: dep,
+        }
 
-    if (typeof fnode.parents !== "undefined") {
-      fnode.parents.add(parentnode);
+    if (typeof fnode.parents !== 'undefined') {
+      fnode.parents.add(parentnode)
     }
-    parentnode.children[dep] = fnode;
+    parentnode.children[dep] = fnode
 
-    return hasSomeTransitiveDeps(dep, deadends, fnode, map, options);
-  });
+    return hasSomeTransitiveDeps(dep, deadends, fnode, map, options)
+  })
 
-  tlog(`End of process "${filename}"`);
+  tlog(`End of process "${filename}"`)
 
-  return result;
+  return result
 }
 
 function getDeps(filename: Filename, options: Options): Filename[] {
-  depslog(`Processing "${filename}"`);
+  depslog(`Processing "${filename}"`)
 
-  const dependencies: string[] = precinct.paperwork(filename);
+  const dependencies: string[] = precinct.paperwork(filename)
 
-  depslog(`Extracted dependencies are`, dependencies);
+  depslog(`Extracted dependencies are`, dependencies)
 
   const resolved = dependencies
-    .filter((dep: string) => !core.has(dep) && !dep.endsWith(".css"))
+    .filter((dep: string) => !core.has(dep) && !dep.endsWith('.css'))
     .map((dep: Filename) => {
-      const result = cabinet({
-        partial: dep,
-        filename,
-        directory: path.dirname(filename),
-        tsConfig: options.tsConfig
-      });
+      const result = resolve.sync(dep, {
+        basedir: path.dirname(filename),
+        extensions: options.extensions || ['.js', '.jsx', '.ts', '.tsx'],
+      })
 
       if (!result) {
-        throw new Error(`Cannot resolve "${dep}"`);
+        throw new Error(`Cannot resolve "${dep}" from:\n"${filename}"`)
       }
 
-      return fs.realpathSync(result);
+      return fs.realpathSync(result)
     })
     .filter((dep: Filename) => {
-      return (
-        dep.indexOf("node_modules") === -1 &&
-        fs.existsSync(dep) &&
-        fs.lstatSync(dep).isFile()
-      );
-    });
+      return dep.indexOf('node_modules') === -1 && fs.existsSync(dep) && fs.lstatSync(dep).isFile()
+    })
 
-  depslog(`Resolved dependencies are`, resolved);
+  depslog(`Resolved dependencies are`, resolved)
 
-  return resolved;
+  return resolved
 }
 
-// setTimeout(() => {
-
-// }, 2000)
-
-// const result = filterDependent([
-//   './tests/cases/tree/ab.js',
-//   './tests/cases/tree/ac.js',
-// ], [
-//   './tests/cases/tree/a.js',
-//   './tests/cases/tree/acc.js',
-// ])
-// console.log('result', result)
-
-module.exports = filterDependent;
+module.exports = filterDependent

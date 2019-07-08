@@ -2,8 +2,8 @@
   "compilerOptions": {
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "target": "es5",
-    "lib": ["es2015", "es2016", "dom"],
+    "target": "es2015",
+    "lib": ["es2015"],
     "rootDir": "./",
     "moduleResolution": "Node",
     "module": "CommonJS",

@@ -1,8 +1,7 @@
 declare const fs: any;
 declare const path: any;
-declare const execSync: any;
 declare const precinct: any;
-declare const cabinet: any;
+declare const resolve: any;
 declare const debug: any;
 declare const log: any;
 declare const depslog: any;
@@ -16,6 +15,7 @@ declare type Tree = {
 };
 declare type Options = {
     tsConfig?: Filename;
+    extensions?: string[];
 };
 declare function filterDependent(sourceFiles: string[], targetFiles: string[], options?: Options): string[];
 declare function markParentsAsDeadends(subtree: Tree, deadends: Set<Filename>): void;
