@@ -6,7 +6,7 @@ declare const debug: any;
 declare const log: any;
 declare const depslog: any;
 declare const tlog: any;
-declare const core: Set<string>;
+declare const core: Set<unknown>;
 declare type Filename = string;
 declare type Tree = {
     parents?: Set<Tree>;

@@ -6,7 +6,7 @@ const debug = require('debug');
 const log = debug('fd');
 const depslog = debug('fd:deps');
 const tlog = debug('fd:traverse');
-const core = new Set(['fs', 'path', 'url', 'http', 'child_process', 'util']);
+const core = new Set(require('module').builtinModules);
 /*
  * Takes two array of files, and returns filtered version of the first one.
  * Filter condition is simple: leave a file if it dependent on any of the files from the second list.
