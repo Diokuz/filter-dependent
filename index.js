@@ -23,7 +23,9 @@ function filterDependent(sourceFiles, targetFiles, options = {}) {
     const map = new Map();
     const rootNode = Object.create(null);
     // resolving abs and symlinks
-    const sources = sourceFiles.map((f) => fs.realpathSync(path.resolve(f)));
+    const sources = sourceFiles
+        .map((f) => fs.realpathSync(path.resolve(f)))
+        .filter((f) => f.indexOf('node_modules') === -1);
     const targets = targetFiles.map((f) => fs.realpathSync(path.resolve(f)));
     const deadends = new Set(targets);
     const result = sources.filter((s) => {
