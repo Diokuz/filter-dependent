@@ -20,4 +20,12 @@ describe('Cycled', () => {
 
     expect(result).toEqual(sources)
   })
+
+  it('Two files require each other in the middle of require chain', () => {
+    const sources = mf(['cycled2/a.js'])
+    const targets = mf(['cycled2/c.js'])
+    const result = filterDependent(sources, targets)
+
+    expect(result).toEqual(sources)
+  })
 })

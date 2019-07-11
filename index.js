@@ -45,8 +45,11 @@ function markParentsAsDeadends(subtree, deadends) {
         return;
     }
     for (let parent of subtree.parents) {
-        deadends.add(parent.value);
-        markParentsAsDeadends(parent, deadends);
+        // If parent already a deadend, there is no point to check grandparents
+        if (!deadends.has(parent.value)) {
+            deadends.add(parent.value);
+            markParentsAsDeadends(parent, deadends);
+        }
     }
 }
 /*
