@@ -99,6 +99,7 @@ function getDeps(filename, options) {
         const result = resolve.sync(dep, {
             basedir: path.dirname(filename),
             extensions: options.extensions || ['.js', '.jsx', '.ts', '.tsx'],
+            moduleDirectory: options.moduleDirectory
         });
         if (!result) {
             throw new Error(`Cannot resolve "${dep}" from:\n"${filename}"`);

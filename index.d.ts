@@ -16,6 +16,7 @@ declare type Tree = {
 declare type Options = {
     tsConfig?: Filename;
     extensions?: string[];
+    moduleDirectory?: string | ReadonlyArray<string>;
 };
 declare function filterDependent(sourceFiles: string[], targetFiles: string[], options?: Options): string[];
 declare function markParentsAsDeadends(subtree: Tree, deadends: Set<Filename>): void;

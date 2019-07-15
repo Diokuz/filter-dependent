@@ -61,5 +61,6 @@ Where
 `sources` – an array of file paths to be filtered.
 `targets` – an array of file paths to be used for filtering out sources.
 `options.extensions` – an array of strings, default `['.js', '.jsx', '.ts', '.tsx']`, for resolving dependencies
+`options.moduleDirectory` - directory (or directories) in which to recursively look for modules
 
 > note: `filter-dependent` fails when any of dependency is not resolved.

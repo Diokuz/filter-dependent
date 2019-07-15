@@ -22,6 +22,7 @@ type Tree = {
 type Options = {
   tsConfig?: Filename
   extensions?: string[]
+  moduleDirectory?: string | ReadonlyArray<string>
 }
 
 /*
@@ -145,6 +146,7 @@ function getDeps(filename: Filename, options: Options): Filename[] {
       const result = resolve.sync(dep, {
         basedir: path.dirname(filename),
         extensions: options.extensions || ['.js', '.jsx', '.ts', '.tsx'],
+        moduleDirectory: options.moduleDirectory
       })
 
       if (!result) {
