@@ -1,1 +1,7 @@
 __tests__
+.editorconfig
+.gitignore
+.prettierrc.yml
+jest.config.js
+Makefile
+tsconfig.json

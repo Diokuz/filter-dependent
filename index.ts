@@ -1,11 +1,11 @@
-const fs = require('fs')
-const path = require('path')
-const precinct = require('precinct')
-const resolve = require('resolve')
+import fs from 'fs'
+import path from 'path'
+import precinct from 'precinct'
+import resolve from 'resolve'
 
-const debug = require('debug')
+import debug from 'debug'
 
-const log = debug('fd')
+// const log = debug('fd')
 const depslog = debug('fd:deps')
 const tlog = debug('fd:traverse')
 

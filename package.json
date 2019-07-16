@@ -1,6 +1,6 @@
 {
   "name": "filter-dependent",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "description": "Filters a list of files, leaving only those which transitively dependent on any of the files from the second list",
   "author": "Diokuz",
   "license": "MIT",
@@ -11,6 +11,8 @@
     "resolve": "^1.11.1"
   },
   "devDependencies": {
+    "@types/debug": "^4.1.4",
+    "@types/resolve": "^0.0.8",
     "debug": "^4.1.1",
     "jest": "^24.8.0",
     "prettier": "1.18.2",

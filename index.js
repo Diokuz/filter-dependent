@@ -1,11 +1,14 @@
-const fs = require('fs');
-const path = require('path');
-const precinct = require('precinct');
-const resolve = require('resolve');
-const debug = require('debug');
-const log = debug('fd');
-const depslog = debug('fd:deps');
-const tlog = debug('fd:traverse');
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
+const fs_1 = tslib_1.__importDefault(require("fs"));
+const path_1 = tslib_1.__importDefault(require("path"));
+const precinct_1 = tslib_1.__importDefault(require("precinct"));
+const resolve_1 = tslib_1.__importDefault(require("resolve"));
+const debug_1 = tslib_1.__importDefault(require("debug"));
+// const log = debug('fd')
+const depslog = debug_1.default('fd:deps');
+const tlog = debug_1.default('fd:traverse');
 const core = new Set(require('module').builtinModules);
 /*
  * Takes two array of files, and returns filtered version of the first one.
@@ -24,11 +27,11 @@ function filterDependent(sourceFiles, targetFiles, options = {}) {
     const rootNode = Object.create(null);
     // resolving abs and symlinks
     const sourcesArg = sourceFiles
-        .map((f) => fs.realpathSync(path.resolve(f)))
+        .map((f) => fs_1.default.realpathSync(path_1.default.resolve(f)))
         .filter((f) => f.indexOf('node_modules') === -1);
     // dedupe
     const sources = Array.from(new Set(sourcesArg));
-    const targets = targetFiles.map((f) => fs.realpathSync(path.resolve(f)));
+    const targets = targetFiles.map((f) => fs_1.default.realpathSync(path_1.default.resolve(f)));
     const deadends = new Set(targets);
     const result = sources.filter((s) => {
         const fnode = {
@@ -95,22 +98,22 @@ function hasSomeTransitiveDeps(filename, deadends, subtree, map, options) {
 }
 function getDeps(filename, options) {
     depslog(`Processing "${filename}"`);
-    const dependencies = precinct.paperwork(filename);
+    const dependencies = precinct_1.default.paperwork(filename);
     depslog(`Extracted dependencies are`, dependencies);
     const resolved = dependencies
         .filter((dep) => !core.has(dep) && !dep.endsWith('.css'))
         .map((dep) => {
-        const result = resolve.sync(dep, {
-            basedir: path.dirname(filename),
+        const result = resolve_1.default.sync(dep, {
+            basedir: path_1.default.dirname(filename),
             extensions: options.extensions || ['.js', '.jsx', '.ts', '.tsx'],
         });
         if (!result) {
             throw new Error(`Cannot resolve "${dep}" from:\n"${filename}"`);
         }
-        return fs.realpathSync(result);
+        return fs_1.default.realpathSync(result);
     })
         .filter((dep) => {
-        return dep.indexOf('node_modules') === -1 && fs.existsSync(dep) && fs.lstatSync(dep).isFile();
+        return dep.indexOf('node_modules') === -1 && fs_1.default.existsSync(dep) && fs_1.default.lstatSync(dep).isFile();
     });
     depslog(`Resolved dependencies are`, resolved);
     return resolved;
