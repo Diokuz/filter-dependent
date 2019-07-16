@@ -1,6 +1,6 @@
 {
   "name": "filter-dependent",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "description": "Filters a list of files, leaving only those which transitively dependent on any of the files from the second list",
   "author": "Diokuz",
   "license": "MIT",

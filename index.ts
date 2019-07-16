@@ -41,9 +41,11 @@ function filterDependent(sourceFiles: string[], targetFiles: string[], options: 
   const rootNode = Object.create(null)
 
   // resolving abs and symlinks
-  const sources = sourceFiles
+  const sourcesArg = sourceFiles
     .map((f: string) => fs.realpathSync(path.resolve(f)))
     .filter((f: string) => f.indexOf('node_modules') === -1)
+  // dedupe
+  const sources = Array.from(new Set(sourcesArg))
   const targets = targetFiles.map((f: string) => fs.realpathSync(path.resolve(f)))
   const deadends = new Set(targets)
 
