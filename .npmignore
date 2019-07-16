@@ -5,3 +5,4 @@ __tests__
 jest.config.js
 Makefile
 tsconfig.json
+index.ts
