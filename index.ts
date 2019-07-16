@@ -166,4 +166,4 @@ function getDeps(filename: Filename, options: Options): Filename[] {
   return resolved
 }
 
-module.exports = filterDependent
+export default filterDependent

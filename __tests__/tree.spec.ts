@@ -1,7 +1,7 @@
-const path = require('path')
-const filterDependent = require('../index.ts')
+import path from 'path'
+import filterDependent from '../index'
 
-function mf(fns) {
+function mf(fns: string[]) {
   return fns.map(f => path.resolve(process.cwd(), '__tests__', '__fixtures__', f))
 }
 
@@ -72,7 +72,7 @@ describe('Tree', () => {
     const sources = mf(['ts-css/a.js'])
     const targets = mf(['ts-css/d.jsx'])
     const expected = sources
-    const result = filterDependent(sources, targets, { tsconfig: './tsconfig.json' })
+    const result = filterDependent(sources, targets)
 
     expect(result).toEqual(expected)
   })

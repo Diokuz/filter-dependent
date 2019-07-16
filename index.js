@@ -120,5 +120,5 @@ function getDeps(filename, options) {
     depslog(`Resolved dependencies are`, resolved);
     return resolved;
 }
-module.exports = filterDependent;
+exports.default = filterDependent;
 //# sourceMappingURL=index.js.map
