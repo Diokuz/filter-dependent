@@ -1,11 +1,13 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = require("tslib");
-const fs_1 = tslib_1.__importDefault(require("fs"));
-const path_1 = tslib_1.__importDefault(require("path"));
-const precinct_1 = tslib_1.__importDefault(require("precinct"));
-const resolve_1 = tslib_1.__importDefault(require("resolve"));
-const debug_1 = tslib_1.__importDefault(require("debug"));
+const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
+const precinct_1 = __importDefault(require("precinct"));
+const resolve_1 = __importDefault(require("resolve"));
+const debug_1 = __importDefault(require("debug"));
 // const log = debug('fd')
 const depslog = debug_1.default('fd:deps');
 const tlog = debug_1.default('fd:traverse');

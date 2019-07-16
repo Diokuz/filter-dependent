@@ -14,7 +14,6 @@
     "declaration": true,
     "resolveJsonModule": true,
     "strictNullChecks": true,
-    "importHelpers": true,
     "downlevelIteration": true,
     "noImplicitAny": true
   },
