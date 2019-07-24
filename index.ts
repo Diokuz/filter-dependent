@@ -19,9 +19,20 @@ type Tree = {
   value: Filename
 }
 
+type OnMiss = (filename: Filename, missingDep: string) => any
+
 type Options = {
   tsConfig?: Filename
   extensions?: string[]
+  onMiss?: OnMiss
+}
+
+type InnerOptions = {
+  extensions: {
+    set: Set<string>
+    array: string[]
+  }
+  onMiss?: OnMiss
 }
 
 /*
@@ -48,6 +59,14 @@ function filterDependent(sourceFiles: string[], targetFiles: string[], options: 
   const sources = Array.from(new Set(sourcesArg))
   const targets = targetFiles.map((f: string) => fs.realpathSync(path.resolve(f)))
   const deadends = new Set(targets)
+  const exts = options.extensions || ['.js', '.jsx', '.ts', '.tsx']
+  const innerOptions: InnerOptions = {
+    onMiss: options.onMiss,
+    extensions: {
+      set: new Set(exts),
+      array: exts,
+    },
+  }
 
   const result = sources.filter((s: Filename) => {
     const fnode = {
@@ -58,7 +77,7 @@ function filterDependent(sourceFiles: string[], targetFiles: string[], options: 
 
     rootNode[s] = fnode
 
-    return hasSomeTransitiveDeps(s, deadends, fnode, map, options)
+    return hasSomeTransitiveDeps(s, deadends, fnode, map, innerOptions)
   })
 
   return result
@@ -91,7 +110,7 @@ function hasSomeTransitiveDeps(
   deadends: Set<Filename>,
   subtree: Tree,
   map: Map<Filename, Tree>,
-  options: Options
+  options: InnerOptions
 ) {
   tlog(`Start of process "${filename}"`, subtree)
 
@@ -136,34 +155,46 @@ function hasSomeTransitiveDeps(
   return result
 }
 
-function getDeps(filename: Filename, options: Options): Filename[] {
+function getDeps(filename: Filename, options: InnerOptions): Filename[] {
   depslog(`Processing "${filename}"`)
 
   const dependencies: string[] = precinct.paperwork(filename)
 
   depslog(`Extracted dependencies are`, dependencies)
 
-  const resolved = dependencies
-    .filter((dep: string) => !core.has(dep) && !dep.endsWith('.css'))
-    .map((dep: Filename) => {
+  const filteredExt = dependencies.filter((dep: string) => !core.has(dep) && !dep.endsWith('.css'))
+
+  depslog(`filtered by ext dependencies are`, filteredExt)
+
+  const resolvedDeps = filteredExt.map((dep: Filename): Filename | null => {
+    try {
       const result = resolve.sync(dep, {
         basedir: path.dirname(filename),
-        extensions: options.extensions || ['.js', '.jsx', '.ts', '.tsx'],
+        extensions: options.extensions.array,
       })
 
-      if (!result) {
+      return fs.realpathSync(result)
+    } catch (e) {
+      depslog(`!!!`)
+      if (options.onMiss) {
+        options.onMiss(filename, dep)
+      } else {
         throw new Error(`Cannot resolve "${dep}" from:\n"${filename}"`)
       }
+    }
 
-      return fs.realpathSync(result)
-    })
-    .filter((dep: Filename) => {
-      return dep.indexOf('node_modules') === -1 && fs.existsSync(dep) && fs.lstatSync(dep).isFile()
-    })
+    return null
+  })
 
-  depslog(`Resolved dependencies are`, resolved)
+  depslog(`Resolved dependencies are`, resolvedDeps)
 
-  return resolved
+  const finalDeps = resolvedDeps.filter((dep: Filename | null) => {
+    return dep !== null && dep.indexOf('node_modules') === -1 && fs.existsSync(dep) && fs.lstatSync(dep).isFile()
+  })
+
+  depslog(`Returning dependencies are`, finalDeps)
+
+  return finalDeps as Filename[]
 }
 
 export default filterDependent

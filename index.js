@@ -35,6 +35,14 @@ function filterDependent(sourceFiles, targetFiles, options = {}) {
     const sources = Array.from(new Set(sourcesArg));
     const targets = targetFiles.map((f) => fs_1.default.realpathSync(path_1.default.resolve(f)));
     const deadends = new Set(targets);
+    const exts = options.extensions || ['.js', '.jsx', '.ts', '.tsx'];
+    const innerOptions = {
+        onMiss: options.onMiss,
+        extensions: {
+            set: new Set(exts),
+            array: exts,
+        },
+    };
     const result = sources.filter((s) => {
         const fnode = {
             // parents: never, // no link to the pseodu tree's root
@@ -42,7 +50,7 @@ function filterDependent(sourceFiles, targetFiles, options = {}) {
             value: s,
         };
         rootNode[s] = fnode;
-        return hasSomeTransitiveDeps(s, deadends, fnode, map, options);
+        return hasSomeTransitiveDeps(s, deadends, fnode, map, innerOptions);
     });
     return result;
 }
@@ -102,23 +110,33 @@ function getDeps(filename, options) {
     depslog(`Processing "${filename}"`);
     const dependencies = precinct_1.default.paperwork(filename);
     depslog(`Extracted dependencies are`, dependencies);
-    const resolved = dependencies
-        .filter((dep) => !core.has(dep) && !dep.endsWith('.css'))
-        .map((dep) => {
-        const result = resolve_1.default.sync(dep, {
-            basedir: path_1.default.dirname(filename),
-            extensions: options.extensions || ['.js', '.jsx', '.ts', '.tsx'],
-        });
-        if (!result) {
-            throw new Error(`Cannot resolve "${dep}" from:\n"${filename}"`);
+    const filteredExt = dependencies.filter((dep) => !core.has(dep) && !dep.endsWith('.css'));
+    depslog(`filtered by ext dependencies are`, filteredExt);
+    const resolvedDeps = filteredExt.map((dep) => {
+        try {
+            const result = resolve_1.default.sync(dep, {
+                basedir: path_1.default.dirname(filename),
+                extensions: options.extensions.array,
+            });
+            return fs_1.default.realpathSync(result);
         }
-        return fs_1.default.realpathSync(result);
-    })
-        .filter((dep) => {
-        return dep.indexOf('node_modules') === -1 && fs_1.default.existsSync(dep) && fs_1.default.lstatSync(dep).isFile();
+        catch (e) {
+            depslog(`!!!`);
+            if (options.onMiss) {
+                options.onMiss(filename, dep);
+            }
+            else {
+                throw new Error(`Cannot resolve "${dep}" from:\n"${filename}"`);
+            }
+        }
+        return null;
     });
-    depslog(`Resolved dependencies are`, resolved);
-    return resolved;
+    depslog(`Resolved dependencies are`, resolvedDeps);
+    const finalDeps = resolvedDeps.filter((dep) => {
+        return dep !== null && dep.indexOf('node_modules') === -1 && fs_1.default.existsSync(dep) && fs_1.default.lstatSync(dep).isFile();
+    });
+    depslog(`Returning dependencies are`, finalDeps);
+    return finalDeps;
 }
 exports.default = filterDependent;
 //# sourceMappingURL=index.js.map

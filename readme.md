@@ -61,5 +61,6 @@ Where
 `sources` – an array of file paths to be filtered.
 `targets` – an array of file paths to be used for filtering out sources.
 `options.extensions` – an array of strings, default `['.js', '.jsx', '.ts', '.tsx']`, for resolving dependencies
+`options.onMiss` – function, which will be called instead of throwing an error. Arguments are: _filename_ and _dep_ – absolute path of processing file and unresolved dependendy in it
 
-> note: `filter-dependent` fails when any of dependency is not resolved.
+> note: `filter-dependent` fails when any of dependency is not resolved by default.
