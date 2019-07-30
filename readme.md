@@ -20,7 +20,7 @@ By doing that, you skip non-affected files and speed up your CI/build.
 1. Supports js, jsx, ts, tsx.
 1. Fast.
 2. Resolves all symlinks to real filenames.
-3. Skip node_modules.
+3. Skip node_modules by default.
 
 ## Example
 
@@ -60,7 +60,7 @@ Where
 
 `sources` – an array of file paths to be filtered.
 `targets` – an array of file paths to be used for filtering out sources.
-`options.extensions` – an array of strings, default `['.js', '.jsx', '.ts', '.tsx']`, for resolving dependencies
+`options.filter` – function, which will be called on each found file (including sources and targers) to filter out some. `(f: string) => f.indexOf('node_modules') === -1 && !f.endsWith('.css')` by default.
 `options.onMiss` – function, which will be called instead of throwing an error. Arguments are: _filename_ and _dep_ – absolute path of processing file and unresolved dependendy in it
 
-> note: `filter-dependent` fails when any of dependency is not resolved by default.
+> note: `filter-dependent` fails on first unresolved dependency (by default).

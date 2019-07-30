@@ -1,6 +1,6 @@
 import path from 'path'
 // @ts-ignore
-import filterDependent from '../index.ts'
+import { filterDependentSync } from '../index.ts'
 
 function mf(fns: string[]) {
   return fns.map(f => path.resolve(process.cwd(), '__tests__', '__fixtures__', f))
@@ -8,13 +8,13 @@ function mf(fns: string[]) {
 
 describe('Tree', () => {
   it('Returns empty result on empty data', () => {
-    const result = filterDependent([], [])
+    const result = filterDependentSync([], [])
 
     expect(result).toEqual([])
   })
 
   it('Returns empty result on empty sources', () => {
-    const result = filterDependent([], mf(['tree/a.js']))
+    const result = filterDependentSync([], mf(['tree/a.js']))
 
     expect(result).toEqual([])
   })
@@ -22,7 +22,7 @@ describe('Tree', () => {
   it('Returns sources if targets === sources', () => {
     const sources = mf(['tree/a.js'])
     const targets = sources
-    const result = filterDependent(sources, targets)
+    const result = filterDependentSync(sources, targets)
 
     expect(result).toEqual(sources)
   })
@@ -31,7 +31,7 @@ describe('Tree', () => {
     const sources = mf(['tree/ab.js', 'tree/ac.js'])
     const targets = mf(['tree/abb.js'])
     const expected = mf(['tree/ab.js'])
-    const result = filterDependent(sources, targets)
+    const result = filterDependentSync(sources, targets)
 
     expect(result).toEqual(expected)
   })
@@ -40,7 +40,7 @@ describe('Tree', () => {
     const sources = mf(['tree/a.js', 'imports/a.js'])
     const targets = mf(['tree/abb.js'])
     const expected = mf(['tree/a.js'])
-    const result = filterDependent(sources, targets)
+    const result = filterDependentSync(sources, targets)
 
     expect(result).toEqual(expected)
   })
@@ -49,7 +49,7 @@ describe('Tree', () => {
     const sources = mf(['imports/a.js'])
     const targets = mf(['imports/c.js'])
     const expected = sources
-    const result = filterDependent(sources, targets)
+    const result = filterDependentSync(sources, targets)
 
     expect(result).toEqual(expected)
   })
@@ -58,7 +58,7 @@ describe('Tree', () => {
     const sources = mf(['imports/a.js', 'imports/b.js'])
     const targets = mf(['imports/c.js'])
     const expected = sources
-    const result = filterDependent(sources, targets)
+    const result = filterDependentSync(sources, targets)
 
     expect(result).toEqual(expected)
   })
@@ -66,14 +66,14 @@ describe('Tree', () => {
   it('Broken imports must throw', () => {
     const sources = mf(['cant-resolve/broken.js'])
 
-    expect(() => filterDependent(sources, [])).toThrow()
+    expect(() => filterDependentSync(sources, [])).toThrow()
   })
 
   it('ts/tsx/css/jsx', () => {
     const sources = mf(['ts-css/a.js'])
     const targets = mf(['ts-css/d.jsx'])
     const expected = sources
-    const result = filterDependent(sources, targets)
+    const result = filterDependentSync(sources, targets)
 
     expect(result).toEqual(expected)
   })

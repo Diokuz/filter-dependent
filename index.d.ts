@@ -1,9 +1,9 @@
-declare type Filename = string;
-export declare type OnMiss = (filename: Filename, missingDep: string) => any;
-declare type Options = {
-    tsConfig?: Filename;
+export declare type OnMiss = (filename: string, missingDep: string) => any;
+export declare type Options = {
     extensions?: string[];
     onMiss?: OnMiss;
+    filter?: (f: string) => boolean;
 };
-declare function filterDependent(sourceFiles: string[], targetFiles: string[], options?: Options): string[];
+export declare function filterDependentSync(sourceFiles: string[], targetFiles: string[], optionsArg?: Options): string[];
+declare function filterDependent(sourceFiles: string[], targetFiles: string[], optionsArg?: Options): Promise<string[]>;
 export default filterDependent;

@@ -1,6 +1,6 @@
 import path from 'path'
 // @ts-ignore
-import filterDependent from '../index.ts'
+import { filterDependentSync } from '../index.ts'
 
 function mf(fns: string[]) {
   return fns.map(f => path.resolve(process.cwd(), '__tests__', '__fixtures__', f))
@@ -9,7 +9,7 @@ function mf(fns: string[]) {
 describe('Cycled', () => {
   it('Must not fail when cycled', () => {
     const sources = mf(['cycled/a.js'])
-    const result = filterDependent(sources, [])
+    const result = filterDependentSync(sources, [])
 
     expect(result).toEqual([])
   })
@@ -17,7 +17,7 @@ describe('Cycled', () => {
   it('Must find deps when cycled', () => {
     const sources = mf(['cycled/a.js'])
     const targets = mf(['cycled/c.js'])
-    const result = filterDependent(sources, targets)
+    const result = filterDependentSync(sources, targets)
 
     expect(result).toEqual(sources)
   })
@@ -25,7 +25,7 @@ describe('Cycled', () => {
   it('Two files require each other in the middle of require chain', () => {
     const sources = mf(['cycled2/a.js'])
     const targets = mf(['cycled2/c.js'])
-    const result = filterDependent(sources, targets)
+    const result = filterDependentSync(sources, targets)
 
     expect(result).toEqual(sources)
   })

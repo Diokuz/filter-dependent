@@ -1,39 +1,32 @@
 import fs from 'fs'
 import path from 'path'
-import precinct from 'precinct'
-import resolve from 'resolve'
 import debug from 'debug'
 
-// import { collectGraphSync } from './graph'
+import { collectGraphSync, collectGraph, Graph, findChild, traverseParents } from './graph'
 
-// const log = debug('fd')
-const depslog = debug('fd:deps')
-const tlog = debug('fd:traverse')
+const log = debug('fd')
 
-const core = new Set(require('module').builtinModules)
+export type OnMiss = (filename: string, missingDep: string) => any
 
-type Filename = string
-
-type Tree = {
-  parents?: Set<Tree>
-  children: Record<Filename, Tree>
-  value: Filename
-}
-
-export type OnMiss = (filename: Filename, missingDep: string) => any
-
-type Options = {
-  tsConfig?: Filename
+export type Options = {
   extensions?: string[]
   onMiss?: OnMiss
+  filter?: (f: string) => boolean
 }
 
-type InnerOptions = {
-  extensions: {
-    set: Set<string>
-    array: string[]
-  }
-  onMiss?: OnMiss
+const DEFAULT_OPTIONS = {
+  filter: (f: string) => f.indexOf('node_modules') === -1 && !f.endsWith('.css'),
+}
+
+function prepare(sourceFiles: string[], targetFiles: string[], optionsArg: Options = {}) {
+  const options = { ...DEFAULT_OPTIONS, ...optionsArg }
+  const sourcesArg = sourceFiles.map((f: string) => fs.realpathSync(path.resolve(f)))
+  // dedupe
+  const sources = Array.from(new Set(sourcesArg))
+  const targets = targetFiles.map((f: string) => fs.realpathSync(path.resolve(f)))
+  const deadends = new Set(targets)
+
+  return { sources, deadends, options }
 }
 
 /*
@@ -48,158 +41,54 @@ type InnerOptions = {
  * filterDependent(['a.js', 'd.js'], ['b.ts'])
  *  –> ['a.js']
  */
-function filterDependent(sourceFiles: string[], targetFiles: string[], options: Options = {}): string[] {
-  // log(`collecting graph...`)
-  // const graph = collectGraphSync(sourceFiles)
-  // log(`collected`)
+export function filterDependentSync(sourceFiles: string[], targetFiles: string[], optionsArg: Options = {}): string[] {
+  const { options, sources, deadends } = prepare(sourceFiles, targetFiles, optionsArg)
 
-  const map = new Map()
-  const rootNode = Object.create(null)
+  log(`collecting graph...`)
+  const graph: Graph = collectGraphSync(sources, options)
+  log(`collected`, graph.keys())
 
-  // resolving abs and symlinks
-  const sourcesArg = sourceFiles
-    .map((f: string) => fs.realpathSync(path.resolve(f)))
-    .filter((f: string) => f.indexOf('node_modules') === -1)
-  // dedupe
-  const sources = Array.from(new Set(sourcesArg))
-  const targets = targetFiles.map((f: string) => fs.realpathSync(path.resolve(f)))
-  const deadends = new Set(targets)
-  const exts = options.extensions || ['.js', '.jsx', '.ts', '.tsx']
-  const innerOptions: InnerOptions = {
-    onMiss: options.onMiss,
-    extensions: {
-      set: new Set(exts),
-      array: exts,
-    },
-  }
+  return sources.filter((s) => {
+    log(`s`, s)
+    const closestDeadend = findChild(s, graph, (f: string) => deadends.has(f))
 
-  const result = sources.filter((s: Filename) => {
-    const fnode = {
-      // parents: never, // no link to the pseodu tree's root
-      children: Object.create(null),
-      value: s,
+    log(`closestDeadend`, closestDeadend)
+
+    if (typeof closestDeadend === 'string') {
+      traverseParents(s, graph, (f) => deadends.add(f))
+
+      return true
     }
 
-    rootNode[s] = fnode
-
-    return hasSomeTransitiveDeps(s, deadends, fnode, map, innerOptions)
+    return false
   })
-
-  return result
 }
 
-function markParentsAsDeadends(subtree: Tree, deadends: Set<Filename>): void {
-  if (!subtree) {
-    console.trace()
-  }
-  if (typeof subtree.parents === 'undefined') {
-    return
-  }
+async function filterDependent(
+  sourceFiles: string[],
+  targetFiles: string[],
+  optionsArg: Options = {}
+): Promise<string[]> {
+  const { options, sources, deadends } = prepare(sourceFiles, targetFiles, optionsArg)
 
-  for (let parent of subtree.parents) {
-    // If parent already a deadend, there is no point to check grandparents
-    if (!deadends.has(parent.value)) {
-      deadends.add(parent.value)
-      markParentsAsDeadends(parent, deadends)
-    }
-  }
-}
+  log(`collecting graph...`)
+  const graph: Graph = await collectGraph(sources, options)
+  log(`collected`, graph.keys())
 
-/*
- * Traversing a filename's dependencies and append them to the `subtree` and `map`.
- * Traverse process is limited by `deadends` – every file in it is a deadend.
- * If deadend is reached, `true` is returned, `false` otherwise.
- */
-function hasSomeTransitiveDeps(
-  filename: Filename,
-  deadends: Set<Filename>,
-  subtree: Tree,
-  map: Map<Filename, Tree>,
-  options: InnerOptions
-) {
-  tlog(`Start of process "${filename}"`, subtree)
+  return sources.filter((s) => {
+    log(`s`, s)
+    const closestDeadend = findChild(s, graph, (f: string) => deadends.has(f))
 
-  if (deadends.has(filename)) {
-    markParentsAsDeadends(subtree, deadends)
+    log(`closestDeadend`, closestDeadend)
 
-    tlog(`Deadend reached, returning true`)
+    if (typeof closestDeadend === 'string') {
+      traverseParents(s, graph, (f) => deadends.add(f))
 
-    return true
-  }
-
-  // map.set for any filename must be called only after this if
-  if (map.has(filename)) {
-    tlog(`Already processed, returning`)
-
-    return deadends.has(filename)
-  }
-
-  map.set(filename, subtree)
-
-  const deps = getDeps(filename, options)
-  const result = deps.some((dep: Filename) => {
-    const parentnode = subtree
-    const fnode: Tree = map.has(dep)
-      ? (map.get(dep) as Tree)
-      : {
-          parents: new Set(),
-          children: Object.create(null),
-          value: dep,
-        }
-
-    if (typeof fnode.parents !== 'undefined') {
-      fnode.parents.add(parentnode)
-    }
-    parentnode.children[dep] = fnode
-
-    return hasSomeTransitiveDeps(dep, deadends, fnode, map, options)
-  })
-
-  tlog(`End of process "${filename}"`)
-
-  return result
-}
-
-function getDeps(filename: Filename, options: InnerOptions): Filename[] {
-  depslog(`Processing "${filename}"`)
-
-  const dependencies: string[] = precinct.paperwork(filename)
-
-  depslog(`Extracted dependencies are`, dependencies)
-
-  const filteredExt = dependencies.filter((dep: string) => !core.has(dep) && !dep.endsWith('.css'))
-
-  depslog(`filtered by ext dependencies are`, filteredExt)
-
-  const resolvedDeps = filteredExt.map((dep: Filename): Filename | null => {
-    try {
-      const result = resolve.sync(dep, {
-        basedir: path.dirname(filename),
-        extensions: options.extensions.array,
-      })
-
-      return fs.realpathSync(result)
-    } catch (e) {
-      depslog(`!!!`)
-      if (options.onMiss) {
-        options.onMiss(filename, dep)
-      } else {
-        throw new Error(`Cannot resolve "${dep}" from:\n"${filename}"`)
-      }
+      return true
     }
 
-    return null
+    return false
   })
-
-  depslog(`Resolved dependencies are`, resolvedDeps)
-
-  const finalDeps = resolvedDeps.filter((dep: Filename | null) => {
-    return dep !== null && dep.indexOf('node_modules') === -1 && fs.existsSync(dep) && fs.lstatSync(dep).isFile()
-  })
-
-  depslog(`Returning dependencies are`, finalDeps)
-
-  return finalDeps as Filename[]
 }
 
 export default filterDependent
