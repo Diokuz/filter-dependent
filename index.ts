@@ -2,8 +2,9 @@ import fs from 'fs'
 import path from 'path'
 import precinct from 'precinct'
 import resolve from 'resolve'
-
 import debug from 'debug'
+
+// import { collectGraphSync } from './graph'
 
 // const log = debug('fd')
 const depslog = debug('fd:deps')
@@ -19,7 +20,7 @@ type Tree = {
   value: Filename
 }
 
-type OnMiss = (filename: Filename, missingDep: string) => any
+export type OnMiss = (filename: Filename, missingDep: string) => any
 
 type Options = {
   tsConfig?: Filename
@@ -48,6 +49,10 @@ type InnerOptions = {
  *  –> ['a.js']
  */
 function filterDependent(sourceFiles: string[], targetFiles: string[], options: Options = {}): string[] {
+  // log(`collecting graph...`)
+  // const graph = collectGraphSync(sourceFiles)
+  // log(`collected`)
+
   const map = new Map()
   const rootNode = Object.create(null)
 

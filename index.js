@@ -8,6 +8,7 @@ const path_1 = __importDefault(require("path"));
 const precinct_1 = __importDefault(require("precinct"));
 const resolve_1 = __importDefault(require("resolve"));
 const debug_1 = __importDefault(require("debug"));
+// import { collectGraphSync } from './graph'
 // const log = debug('fd')
 const depslog = debug_1.default('fd:deps');
 const tlog = debug_1.default('fd:traverse');
@@ -25,6 +26,9 @@ const core = new Set(require('module').builtinModules);
  *  –> ['a.js']
  */
 function filterDependent(sourceFiles, targetFiles, options = {}) {
+    // log(`collecting graph...`)
+    // const graph = collectGraphSync(sourceFiles)
+    // log(`collected`)
     const map = new Map();
     const rootNode = Object.create(null);
     // resolving abs and symlinks
@@ -139,4 +143,3 @@ function getDeps(filename, options) {
     return finalDeps;
 }
 exports.default = filterDependent;
-//# sourceMappingURL=index.js.map

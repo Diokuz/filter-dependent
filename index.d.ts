@@ -1,5 +1,5 @@
 declare type Filename = string;
-declare type OnMiss = (filename: Filename, missingDep: string) => any;
+export declare type OnMiss = (filename: Filename, missingDep: string) => any;
 declare type Options = {
     tsConfig?: Filename;
     extensions?: string[];
