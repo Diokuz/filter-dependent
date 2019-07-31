@@ -115,7 +115,7 @@ const fsp = {
     exists: util_1.default.promisify(fs_1.default.exists),
     lstat: util_1.default.promisify(fs_1.default.lstat),
 };
-// const presolve = util.promisify(resolve)
+const presolve = util_1.default.promisify(resolve_1.default);
 function collectGraph(sourceFiles, options = {}) {
     return __awaiter(this, void 0, void 0, function* () {
         log(`start of collectGraph`);
@@ -165,12 +165,8 @@ function getDeps(fn, options) {
         dlog(`imports`, imports);
         const resolvedDeps = yield Promise.all(imports.map((dep) => __awaiter(this, void 0, void 0, function* () {
             try {
-                // very hot place!
-                // works 4x times faster (in real project) than `await promisify(resolve)`
-                // transpilled to generator
-                // @todo research to speed up/replace `resolve`
                 // @ts-ignore
-                const result = resolve_1.default.sync(dep, {
+                const result = presolve.sync(dep, {
                     basedir: path_1.default.dirname(fn),
                     extensions: EXTS,
                 });

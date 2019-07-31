@@ -141,7 +141,7 @@ const fsp = {
   lstat: util.promisify(fs.lstat),
 }
 
-// const presolve = util.promisify(resolve)
+const presolve = util.promisify(resolve)
 
 export async function collectGraph(sourceFiles: string[], options: Options = {}): Promise<Graph> {
   log(`start of collectGraph`)
@@ -206,12 +206,8 @@ async function getDeps(fn: Fn, options: any): Promise<Fn[]> {
     imports.map(
       async (dep: Fn): Promise<Fn | null> => {
         try {
-          // very hot place!
-          // works 4x times faster (in real project) than `await promisify(resolve)`
-          // transpilled to generator
-          // @todo research to speed up/replace `resolve`
           // @ts-ignore
-          const result = resolve.sync(dep, {
+          const result = presolve.sync(dep, {
             basedir: path.dirname(fn),
             extensions: EXTS,
           })
