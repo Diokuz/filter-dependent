@@ -143,7 +143,10 @@ function buildGraph(sources, graph, options, parent) {
                 }
                 return;
             }
-            const deps = yield getDeps(fn, { onMiss: () => { } });
+            let deps = yield getDeps(fn, { onMiss: () => { } });
+            if (options.filter) {
+                deps = deps.filter(options.filter);
+            }
             log(`deps for "${fn}"`, deps);
             const node = {
                 deps,

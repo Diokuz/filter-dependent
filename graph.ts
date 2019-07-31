@@ -175,7 +175,11 @@ async function buildGraph(sources: Fn[], graph: Graph, options: Options, parent?
         return
       }
 
-      const deps = await getDeps(fn, { onMiss: () => {} })
+      let deps = await getDeps(fn, { onMiss: () => {} })
+
+      if (options.filter) {
+        deps = deps.filter(options.filter)
+      }
 
       log(`deps for "${fn}"`, deps)
 
