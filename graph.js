@@ -121,6 +121,7 @@ function collectGraph(sourceFiles, options = {}) {
         log(`start of collectGraph`);
         const graph = new Map();
         const sourcesArg = yield Promise.all(sourceFiles.map((f) => __awaiter(this, void 0, void 0, function* () { return fsp.realpath(path_1.default.resolve(f)); })));
+        log(`sourcesArg`, sourcesArg);
         // dedupe
         const sources = Array.from(new Set(sourcesArg));
         log(`start of buildGraph`);

@@ -148,6 +148,7 @@ export async function collectGraph(sourceFiles: string[], options: Options = {})
 
   const graph = new Map<string, Node>()
   const sourcesArg = await Promise.all(sourceFiles.map(async (f: Fn) => fsp.realpath(path.resolve(f))))
+  log(`sourcesArg`, sourcesArg)
   // dedupe
   const sources = Array.from(new Set(sourcesArg))
 
