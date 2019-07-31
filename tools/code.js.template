@@ -1,0 +1,18 @@
+
+
+write([], 1)
+
+function write(slugs, depth) {
+  const data = slugs.length < depth ? code : ''
+  const dir = path.resolve(base, ...slugs)
+  const index = path.resolve(dir, 'index.js')
+
+  fse.ensureDirSync(dir)
+  fs.writeFileSync(index, data)
+
+  if (slugs.length < depth) {
+    for (let i = 0; i < 10; i++) {
+      write([...slugs, String(i)], depth)
+    }
+  }
+}

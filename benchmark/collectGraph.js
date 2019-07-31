@@ -4,13 +4,15 @@ const debug = require('debug')
 const log = debug('pipi')
 
 const sources = [
-  path.resolve(process.cwd(), '__tests__', '__fixtures__', 'big', '0', 'index.js')
+  path.resolve(process.cwd(), '__tests__', '__fixtures__', 'extra', 'index.js')
 ]
 
 async function run() {
-  log('collectGraph on 1000 files...')
+  log('collectGraph on 10000 (?) files...')
   await collectGraph(sources)
   log('done')
 }
 
-run()
+run().then(() => {
+  log('done')
+})

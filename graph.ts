@@ -144,16 +144,20 @@ const fsp = {
 const presolve = util.promisify(resolve)
 
 export async function collectGraph(sourceFiles: string[], options: Options = {}): Promise<Graph> {
+  log(`start of collectGraph`)
+
   const graph = new Map<string, Node>()
   const sourcesArg = await Promise.all(sourceFiles.map(async (f: Fn) => fsp.realpath(path.resolve(f))))
   // dedupe
   const sources = Array.from(new Set(sourcesArg))
 
+  log(`start of buildGraph`)
+
   return await buildGraph(sources, graph, options)
 }
 
 async function buildGraph(sources: Fn[], graph: Graph, options: Options, parent?: Fn): Promise<Graph> {
-  Promise.all(
+  await Promise.all(
     sources.map(async (fn: Fn) => {
       log(`processing "${fn}"`)
 

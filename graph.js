@@ -118,17 +118,19 @@ const fsp = {
 const presolve = util_1.default.promisify(resolve_1.default);
 function collectGraph(sourceFiles, options = {}) {
     return __awaiter(this, void 0, void 0, function* () {
+        log(`start of collectGraph`);
         const graph = new Map();
         const sourcesArg = yield Promise.all(sourceFiles.map((f) => __awaiter(this, void 0, void 0, function* () { return fsp.realpath(path_1.default.resolve(f)); })));
         // dedupe
         const sources = Array.from(new Set(sourcesArg));
+        log(`start of buildGraph`);
         return yield buildGraph(sources, graph, options);
     });
 }
 exports.collectGraph = collectGraph;
 function buildGraph(sources, graph, options, parent) {
     return __awaiter(this, void 0, void 0, function* () {
-        Promise.all(sources.map((fn) => __awaiter(this, void 0, void 0, function* () {
+        yield Promise.all(sources.map((fn) => __awaiter(this, void 0, void 0, function* () {
             log(`processing "${fn}"`);
             // If file already visited, just add new `parent`
             // (`parent` is always new here, for given `fn`)

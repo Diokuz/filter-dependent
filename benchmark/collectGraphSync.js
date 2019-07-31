@@ -4,9 +4,9 @@ const debug = require('debug')
 const log = debug('pipi')
 
 const sources = [
-  path.resolve(process.cwd(), '__tests__', '__fixtures__', 'big', 'index.js')
+  path.resolve(process.cwd(), '__tests__', '__fixtures__', 'extra', 'index.js')
 ]
 
-log('collectGraphSync on 1000 files...')
+log('collectGraphSync on 10000 (?) files...')
 collectGraphSync(sources)
 log('done')

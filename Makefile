@@ -1,6 +1,9 @@
 pretty:
 	yarn prettier --write ./*.ts
 
+bench-write:
+	node tools/write-extra-files.js
+
 bench-cg:
 	DEBUG=pipi* node benchmark/collectGraph.js
 
