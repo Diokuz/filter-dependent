@@ -16,6 +16,7 @@ const path_1 = __importDefault(require("path"));
 const debug_1 = __importDefault(require("debug"));
 const graph_1 = require("./graph");
 const log = debug_1.default('fd');
+const tlog = debug_1.default('timings:fd');
 const DEFAULT_OPTIONS = {
     filter: (f) => f.indexOf('node_modules') === -1 && !f.endsWith('.css'),
 };
@@ -43,9 +44,9 @@ function prepare(sourceFiles, targetFiles, optionsArg = {}) {
 function filterDependentSync(sourceFiles, targetFiles, optionsArg = {}) {
     const { options, sources, deadends } = prepare(sourceFiles, targetFiles, optionsArg);
     log(`collecting graph...`);
-    const { graph } = graph_1.collectGraphSync(sources, options);
+    const { graph, timings } = graph_1.collectGraphSync(sources, options);
     log(`collected`, graph.keys());
-    return sources.filter((s) => {
+    const ret = sources.filter((s) => {
         log(`s`, s);
         const closestDeadend = graph_1.findChild(s, graph, (f) => deadends.has(f));
         log(`closestDeadend`, closestDeadend);
@@ -55,13 +56,15 @@ function filterDependentSync(sourceFiles, targetFiles, optionsArg = {}) {
         }
         return false;
     });
+    tlog(timings);
+    return ret;
 }
 exports.filterDependentSync = filterDependentSync;
 function filterDependent(sourceFiles, targetFiles, optionsArg = {}) {
     return __awaiter(this, void 0, void 0, function* () {
         const { options, sources, deadends } = prepare(sourceFiles, targetFiles, optionsArg);
         log(`collecting graph...`);
-        const { graph } = yield graph_1.collectGraph(sources, options);
+        const { graph, timings } = yield graph_1.collectGraph(sources, options);
         log(`collected`, graph.keys());
         const ret = sources.filter((s) => {
             log(`s`, s);
@@ -73,6 +76,7 @@ function filterDependent(sourceFiles, targetFiles, optionsArg = {}) {
             }
             return false;
         });
+        tlog(timings);
         return ret;
     });
 }

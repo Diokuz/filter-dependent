@@ -5,6 +5,7 @@ import debug from 'debug'
 import { collectGraphSync, collectGraph, findChild, traverseParents } from './graph'
 
 const log = debug('fd')
+const tlog = debug('timings:fd')
 
 export type OnMiss = (filename: string, missingDep: string) => any
 
@@ -45,34 +46,7 @@ export function filterDependentSync(sourceFiles: string[], targetFiles: string[]
   const { options, sources, deadends } = prepare(sourceFiles, targetFiles, optionsArg)
 
   log(`collecting graph...`)
-  const { graph } = collectGraphSync(sources, options)
-  log(`collected`, graph.keys())
-
-  return sources.filter((s) => {
-    log(`s`, s)
-    const closestDeadend = findChild(s, graph, (f: string) => deadends.has(f))
-
-    log(`closestDeadend`, closestDeadend)
-
-    if (typeof closestDeadend === 'string') {
-      traverseParents(s, graph, (f) => deadends.add(f))
-
-      return true
-    }
-
-    return false
-  })
-}
-
-async function filterDependent(
-  sourceFiles: string[],
-  targetFiles: string[],
-  optionsArg: Options = {}
-): Promise<string[]> {
-  const { options, sources, deadends } = prepare(sourceFiles, targetFiles, optionsArg)
-
-  log(`collecting graph...`)
-  const { graph } = await collectGraph(sources, options)
+  const { graph, timings } = collectGraphSync(sources, options)
   log(`collected`, graph.keys())
 
   const ret = sources.filter((s) => {
@@ -89,6 +63,39 @@ async function filterDependent(
 
     return false
   })
+
+  tlog(timings)
+
+  return ret
+}
+
+async function filterDependent(
+  sourceFiles: string[],
+  targetFiles: string[],
+  optionsArg: Options = {}
+): Promise<string[]> {
+  const { options, sources, deadends } = prepare(sourceFiles, targetFiles, optionsArg)
+
+  log(`collecting graph...`)
+  const { graph, timings } = await collectGraph(sources, options)
+  log(`collected`, graph.keys())
+
+  const ret = sources.filter((s) => {
+    log(`s`, s)
+    const closestDeadend = findChild(s, graph, (f: string) => deadends.has(f))
+
+    log(`closestDeadend`, closestDeadend)
+
+    if (typeof closestDeadend === 'string') {
+      traverseParents(s, graph, (f) => deadends.add(f))
+
+      return true
+    }
+
+    return false
+  })
+
+  tlog(timings)
 
   return ret
 }
