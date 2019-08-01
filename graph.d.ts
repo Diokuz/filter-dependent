@@ -17,8 +17,14 @@ export declare type Graph = Map<string, Node>;
  * @param sourceFiles filenames – starting nodes for graph
  * @param options { onMiss } – callback for unresolved files
  */
-export declare function collectGraphSync(sourceFiles: string[], options?: Options): Graph;
-export declare function collectGraph(sourceFiles: string[], options?: Options): Promise<Graph>;
+export declare function collectGraphSync(sourceFiles: string[], options?: Options): {
+    graph: Graph;
+    timings: any;
+};
+export declare function collectGraph(sourceFiles: string[], options?: Options): Promise<{
+    graph: Graph;
+    timings: any;
+}>;
 /**
  * Utils Utils Utils Utils Utils Utils Utils Utils Utils Utils Utils Utils Utils Utils Utils
  */

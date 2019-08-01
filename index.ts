@@ -2,7 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import debug from 'debug'
 
-import { collectGraphSync, collectGraph, Graph, findChild, traverseParents } from './graph'
+import { collectGraphSync, collectGraph, findChild, traverseParents } from './graph'
 
 const log = debug('fd')
 
@@ -45,7 +45,7 @@ export function filterDependentSync(sourceFiles: string[], targetFiles: string[]
   const { options, sources, deadends } = prepare(sourceFiles, targetFiles, optionsArg)
 
   log(`collecting graph...`)
-  const graph: Graph = collectGraphSync(sources, options)
+  const { graph } = collectGraphSync(sources, options)
   log(`collected`, graph.keys())
 
   return sources.filter((s) => {
@@ -72,10 +72,10 @@ async function filterDependent(
   const { options, sources, deadends } = prepare(sourceFiles, targetFiles, optionsArg)
 
   log(`collecting graph...`)
-  const graph: Graph = await collectGraph(sources, options)
+  const { graph } = await collectGraph(sources, options)
   log(`collected`, graph.keys())
 
-  return sources.filter((s) => {
+  const ret = sources.filter((s) => {
     log(`s`, s)
     const closestDeadend = findChild(s, graph, (f: string) => deadends.has(f))
 
@@ -89,6 +89,8 @@ async function filterDependent(
 
     return false
   })
+
+  return ret
 }
 
 export default filterDependent

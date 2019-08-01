@@ -5,10 +5,10 @@ bench-write:
 	node tools/write-extra-files.js
 
 bench-cg:
-	DEBUG=pipi* node benchmark/collectGraph.js
+	DEBUG=timings* node benchmark/collectGraph.js
 
 bench-cgs:
-	DEBUG=pipi* node benchmark/collectGraphSync.js
+	DEBUG=timings* node benchmark/collectGraphSync.js
 
 clean:
 	rm index.js || true

@@ -25,6 +25,10 @@ const EXTS = ['.js', '.jsx', '.ts', '.tsx'];
 const log = debug_1.default('fd:graph');
 const tlog = debug_1.default('fd:graph:traverse');
 const dlog = debug_1.default('fd:graph:deps');
+let resolveTime = BigInt(0);
+let cacheResolveTime = BigInt(0);
+let getDepsTime = BigInt(0);
+let realpathTime = BigInt(0);
 /**
  * Sync Sync Sync Sync Sync Sync Sync Sync Sync Sync Sync Sync Sync Sync Sync Sync
  */
@@ -35,6 +39,10 @@ const dlog = debug_1.default('fd:graph:deps');
  */
 function collectGraphSync(sourceFiles, options = {}) {
     log(`got sourceFiles`, sourceFiles);
+    resolveTime = BigInt(0);
+    cacheResolveTime = BigInt(0);
+    getDepsTime = BigInt(0);
+    realpathTime = BigInt(0);
     const graph = new Map();
     const sourcesArg = sourceFiles.map((f) => fs_1.default.realpathSync(path_1.default.resolve(f)));
     // dedupe
@@ -63,7 +71,9 @@ function buildGraphSync(sources, graph, options, parent) {
             }
             return;
         }
+        const tx = process.hrtime.bigint();
         let deps = getDepsSync(fn, options);
+        getDepsTime += process.hrtime.bigint() - tx;
         if (options.filter) {
             deps = deps.filter(options.filter);
         }
@@ -75,7 +85,13 @@ function buildGraphSync(sources, graph, options, parent) {
         graph.set(fn, node);
         buildGraphSync(deps, graph, options, fn);
     });
-    return graph;
+    const timings = {
+        resolveTime,
+        cacheResolveTime,
+        getDepsTime,
+        realpathTime,
+    };
+    return { graph, timings };
 }
 function getDepsSync(fn, options) {
     log(`getting deps for "${fn}"`);
@@ -83,11 +99,16 @@ function getDepsSync(fn, options) {
     log(`imports`, imports);
     const resolvedDeps = imports.map((dep) => {
         try {
-            const result = resolve_1.default.sync(dep, {
+            const tx = process.hrtime.bigint();
+            const result = cacheResolveSync(dep, {
                 basedir: path_1.default.dirname(fn),
                 extensions: EXTS,
             });
-            return fs_1.default.realpathSync(result);
+            cacheResolveTime += process.hrtime.bigint() - tx;
+            const ty = process.hrtime.bigint();
+            const ret = fs_1.default.realpathSync(result);
+            realpathTime += process.hrtime.bigint() - ty;
+            return ret;
         }
         catch (e) {
             log(`failed to resolve "${dep}"`);
@@ -107,6 +128,55 @@ function getDepsSync(fn, options) {
     log(`finalDeps`, finalDeps);
     return finalDeps;
 }
+const cache = {};
+const presolve = util_1.default.promisify(resolve_1.default);
+function populateCache(dep, basedir, resolved, resolvedRealPath) {
+    // Preventive caching
+    // dep:      'react'
+    // fn:       '/project/src/utils/qwe.js'
+    // resolved: '/project/node_modules/react/index.js'
+    // key:      '/project/src/utils/>>>react'
+    // key2:     '/project/src/>>>react'
+    // key3:     '/project/>>>react'
+    if (dep[0] !== '.' && dep[0] !== '/') {
+        let base = basedir;
+        let resolvedBase = resolved.slice(0, resolved.indexOf('/node_modules'));
+        while (base.length >= resolvedBase.length) {
+            let kkey = base + '>>>' + dep;
+            if (!cache[kkey]) {
+                cache[kkey] = {
+                    resolved,
+                    resolvedRealPath,
+                };
+            }
+            base = base.slice(0, base.lastIndexOf('/'));
+        }
+    }
+    else {
+        cache[basedir + '>>>' + dep] = {
+            resolved,
+            resolvedRealPath,
+        };
+    }
+}
+function cacheResolveSync(dep, { basedir, extensions }) {
+    const key = basedir + '>>>' + dep;
+    let resolved;
+    let resolvedRealPath;
+    if (!cache[key]) {
+        const tx = process.hrtime.bigint();
+        resolved = resolve_1.default.sync(dep, {
+            basedir,
+            extensions,
+        });
+        resolveTime += process.hrtime.bigint() - tx;
+        const ty = process.hrtime.bigint();
+        resolvedRealPath = fs_1.default.realpathSync(resolved);
+        realpathTime += process.hrtime.bigint() - ty;
+        populateCache(dep, basedir, resolved, resolvedRealPath);
+    }
+    return cache[key].resolvedRealPath;
+}
 /**
  * Async Async Async Async Async Async Async Async Async Async Async Async
  */
@@ -115,7 +185,6 @@ const fsp = {
     exists: util_1.default.promisify(fs_1.default.exists),
     lstat: util_1.default.promisify(fs_1.default.lstat),
 };
-const presolve = util_1.default.promisify(resolve_1.default);
 function collectGraph(sourceFiles, options = {}) {
     return __awaiter(this, void 0, void 0, function* () {
         log(`start of collectGraph`);
@@ -155,7 +224,26 @@ function buildGraph(sources, graph, options, parent) {
             graph.set(fn, node);
             yield buildGraph(deps, graph, options, fn);
         })));
-        return graph;
+        const timings = {}; // @todo how to get correct timings for async?
+        return { graph, timings };
+    });
+}
+function cacheResolve(dep, fn) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const basedir = path_1.default.dirname(fn);
+        const key = basedir + '>>>' + dep;
+        let resolved;
+        let resolvedRealPath;
+        if (!cache[key]) {
+            // @ts-ignore
+            resolved = yield presolve(dep, {
+                basedir,
+                extensions: EXTS,
+            });
+            resolvedRealPath = yield fsp.realpath(resolved);
+            populateCache(dep, basedir, resolved, resolvedRealPath);
+        }
+        return cache[key].resolvedRealPath;
     });
 }
 function getDeps(fn, options) {
@@ -166,14 +254,16 @@ function getDeps(fn, options) {
         const resolvedDeps = yield Promise.all(imports.map((dep) => __awaiter(this, void 0, void 0, function* () {
             try {
                 // @ts-ignore
-                const result = presolve.sync(dep, {
-                    basedir: path_1.default.dirname(fn),
-                    extensions: EXTS,
-                });
-                return fsp.realpath(result);
+                // const result = presolve.sync(dep, {
+                //   basedir: path.dirname(fn),
+                //   extensions: EXTS,
+                // })
+                // const retVal = fsp.realpath(result)
+                const retVal = yield cacheResolve(dep, fn);
+                return retVal;
             }
             catch (e) {
-                dlog(`failed to resolce "${dep}"`);
+                dlog(`failed to resolve "${dep}"`);
                 if (options.onMiss) {
                     options.onMiss(fn, dep);
                 }

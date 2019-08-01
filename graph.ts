@@ -27,6 +27,11 @@ const log = debug('fd:graph')
 const tlog = debug('fd:graph:traverse')
 const dlog = debug('fd:graph:deps')
 
+let resolveTime = BigInt(0)
+let cacheResolveTime = BigInt(0)
+let getDepsTime = BigInt(0)
+let realpathTime = BigInt(0)
+
 /**
  * Sync Sync Sync Sync Sync Sync Sync Sync Sync Sync Sync Sync Sync Sync Sync Sync
  */
@@ -36,8 +41,13 @@ const dlog = debug('fd:graph:deps')
  * @param sourceFiles filenames – starting nodes for graph
  * @param options { onMiss } – callback for unresolved files
  */
-export function collectGraphSync(sourceFiles: string[], options: Options = {}): Graph {
+export function collectGraphSync(sourceFiles: string[], options: Options = {}): { graph: Graph; timings: any } {
   log(`got sourceFiles`, sourceFiles)
+  resolveTime = BigInt(0)
+  cacheResolveTime = BigInt(0)
+  getDepsTime = BigInt(0)
+  realpathTime = BigInt(0)
+
   const graph = new Map<string, Node>()
   const sourcesArg = sourceFiles.map((f: Fn) => fs.realpathSync(path.resolve(f)))
   // dedupe
@@ -57,7 +67,7 @@ export function collectGraphSync(sourceFiles: string[], options: Options = {}): 
   return buildGraphSync(result, graph, options)
 }
 
-function buildGraphSync(sources: Fn[], graph: Graph, options: Options, parent?: Fn): Graph {
+function buildGraphSync(sources: Fn[], graph: Graph, options: Options, parent?: Fn): { graph: Graph; timings: any } {
   sources.forEach((fn: Fn) => {
     log(`processing "${fn}"`)
 
@@ -74,7 +84,9 @@ function buildGraphSync(sources: Fn[], graph: Graph, options: Options, parent?: 
       return
     }
 
+    const tx = process.hrtime.bigint()
     let deps = getDepsSync(fn, options)
+    getDepsTime += process.hrtime.bigint() - tx
 
     if (options.filter) {
       deps = deps.filter(options.filter)
@@ -92,7 +104,14 @@ function buildGraphSync(sources: Fn[], graph: Graph, options: Options, parent?: 
     buildGraphSync(deps, graph, options, fn)
   })
 
-  return graph
+  const timings = {
+    resolveTime,
+    cacheResolveTime,
+    getDepsTime,
+    realpathTime,
+  }
+
+  return { graph, timings }
 }
 
 function getDepsSync(fn: Fn, options: any): Fn[] {
@@ -102,12 +121,18 @@ function getDepsSync(fn: Fn, options: any): Fn[] {
 
   const resolvedDeps = imports.map((dep: Fn): Fn | null => {
     try {
-      const result = resolve.sync(dep, {
+      const tx = process.hrtime.bigint()
+      const result = cacheResolveSync(dep, {
         basedir: path.dirname(fn),
         extensions: EXTS,
       })
+      cacheResolveTime += process.hrtime.bigint() - tx
 
-      return fs.realpathSync(result)
+      const ty = process.hrtime.bigint()
+      const ret = fs.realpathSync(result)
+      realpathTime += process.hrtime.bigint() - ty
+
+      return ret
     } catch (e) {
       log(`failed to resolve "${dep}"`)
       if (options.onMiss) {
@@ -131,6 +156,66 @@ function getDepsSync(fn: Fn, options: any): Fn[] {
   return finalDeps
 }
 
+const cache: Record<string, { resolved: string; resolvedRealPath: string }> = {}
+
+const presolve = util.promisify(resolve)
+
+function populateCache(dep: string, basedir: string, resolved: Fn, resolvedRealPath: Fn) {
+  // Preventive caching
+  // dep:      'react'
+  // fn:       '/project/src/utils/qwe.js'
+  // resolved: '/project/node_modules/react/index.js'
+  // key:      '/project/src/utils/>>>react'
+  // key2:     '/project/src/>>>react'
+  // key3:     '/project/>>>react'
+
+  if (dep[0] !== '.' && dep[0] !== '/') {
+    let base = basedir
+    let resolvedBase = resolved.slice(0, resolved.indexOf('/node_modules'))
+
+    while (base.length >= resolvedBase.length) {
+      let kkey = base + '>>>' + dep
+
+      if (!cache[kkey]) {
+        cache[kkey] = {
+          resolved,
+          resolvedRealPath,
+        }
+      }
+
+      base = base.slice(0, base.lastIndexOf('/'))
+    }
+  } else {
+    cache[basedir + '>>>' + dep] = {
+      resolved,
+      resolvedRealPath,
+    }
+  }
+}
+
+function cacheResolveSync(dep: string, { basedir, extensions }: any): Fn {
+  const key = basedir + '>>>' + dep
+  let resolved
+  let resolvedRealPath
+
+  if (!cache[key]) {
+    const tx = process.hrtime.bigint()
+    resolved = resolve.sync(dep, {
+      basedir,
+      extensions,
+    })
+    resolveTime += process.hrtime.bigint() - tx
+
+    const ty = process.hrtime.bigint()
+    resolvedRealPath = fs.realpathSync(resolved)
+    realpathTime += process.hrtime.bigint() - ty
+
+    populateCache(dep, basedir, resolved, resolvedRealPath)
+  }
+
+  return cache[key].resolvedRealPath
+}
+
 /**
  * Async Async Async Async Async Async Async Async Async Async Async Async
  */
@@ -141,9 +226,10 @@ const fsp = {
   lstat: util.promisify(fs.lstat),
 }
 
-const presolve = util.promisify(resolve)
-
-export async function collectGraph(sourceFiles: string[], options: Options = {}): Promise<Graph> {
+export async function collectGraph(
+  sourceFiles: string[],
+  options: Options = {}
+): Promise<{ graph: Graph; timings: any }> {
   log(`start of collectGraph`)
 
   const graph = new Map<string, Node>()
@@ -157,7 +243,12 @@ export async function collectGraph(sourceFiles: string[], options: Options = {})
   return await buildGraph(sources, graph, options)
 }
 
-async function buildGraph(sources: Fn[], graph: Graph, options: Options, parent?: Fn): Promise<Graph> {
+async function buildGraph(
+  sources: Fn[],
+  graph: Graph,
+  options: Options,
+  parent?: Fn
+): Promise<{ graph: Graph; timings: any }> {
   await Promise.all(
     sources.map(async (fn: Fn) => {
       log(`processing "${fn}"`)
@@ -194,7 +285,30 @@ async function buildGraph(sources: Fn[], graph: Graph, options: Options, parent?
     })
   )
 
-  return graph
+  const timings = {} // @todo how to get correct timings for async?
+
+  return { graph, timings }
+}
+
+async function cacheResolve(dep: string, fn: Fn): Promise<Fn> {
+  const basedir = path.dirname(fn)
+  const key = basedir + '>>>' + dep
+  let resolved
+  let resolvedRealPath
+
+  if (!cache[key]) {
+    // @ts-ignore
+    resolved = await presolve(dep, {
+      basedir,
+      extensions: EXTS,
+    })
+
+    resolvedRealPath = await fsp.realpath(resolved)
+
+    populateCache(dep, basedir, resolved, resolvedRealPath)
+  }
+
+  return cache[key].resolvedRealPath
 }
 
 async function getDeps(fn: Fn, options: any): Promise<Fn[]> {
@@ -207,14 +321,17 @@ async function getDeps(fn: Fn, options: any): Promise<Fn[]> {
       async (dep: Fn): Promise<Fn | null> => {
         try {
           // @ts-ignore
-          const result = presolve.sync(dep, {
-            basedir: path.dirname(fn),
-            extensions: EXTS,
-          })
+          // const result = presolve.sync(dep, {
+          //   basedir: path.dirname(fn),
+          //   extensions: EXTS,
+          // })
+          // const retVal = fsp.realpath(result)
 
-          return fsp.realpath(result)
+          const retVal = await cacheResolve(dep, fn)
+
+          return retVal
         } catch (e) {
-          dlog(`failed to resolce "${dep}"`)
+          dlog(`failed to resolve "${dep}"`)
           if (options.onMiss) {
             options.onMiss(fn, dep)
           } else {

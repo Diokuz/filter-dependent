@@ -43,7 +43,7 @@ function prepare(sourceFiles, targetFiles, optionsArg = {}) {
 function filterDependentSync(sourceFiles, targetFiles, optionsArg = {}) {
     const { options, sources, deadends } = prepare(sourceFiles, targetFiles, optionsArg);
     log(`collecting graph...`);
-    const graph = graph_1.collectGraphSync(sources, options);
+    const { graph } = graph_1.collectGraphSync(sources, options);
     log(`collected`, graph.keys());
     return sources.filter((s) => {
         log(`s`, s);
@@ -61,9 +61,9 @@ function filterDependent(sourceFiles, targetFiles, optionsArg = {}) {
     return __awaiter(this, void 0, void 0, function* () {
         const { options, sources, deadends } = prepare(sourceFiles, targetFiles, optionsArg);
         log(`collecting graph...`);
-        const graph = yield graph_1.collectGraph(sources, options);
+        const { graph } = yield graph_1.collectGraph(sources, options);
         log(`collected`, graph.keys());
-        return sources.filter((s) => {
+        const ret = sources.filter((s) => {
             log(`s`, s);
             const closestDeadend = graph_1.findChild(s, graph, (f) => deadends.has(f));
             log(`closestDeadend`, closestDeadend);
@@ -73,6 +73,7 @@ function filterDependent(sourceFiles, targetFiles, optionsArg = {}) {
             }
             return false;
         });
+        return ret;
     });
 }
 exports.default = filterDependent;
