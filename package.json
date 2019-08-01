@@ -1,6 +1,6 @@
 {
   "name": "filter-dependent",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "main": "index.js",
   "description": "Filters a list of files, leaving only those which transitively dependent on any of the files from the second list",
   "author": "Diokuz",

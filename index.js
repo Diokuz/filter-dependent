@@ -19,6 +19,7 @@ const log = debug_1.default('fd');
 const tlog = debug_1.default('timings:fd');
 const DEFAULT_OPTIONS = {
     filter: (f) => f.indexOf('node_modules') === -1 && !f.endsWith('.css'),
+    externals: [],
 };
 function prepare(sourceFiles, targetFiles, optionsArg = {}) {
     const options = Object.assign({}, DEFAULT_OPTIONS, optionsArg);
@@ -27,6 +28,7 @@ function prepare(sourceFiles, targetFiles, optionsArg = {}) {
     const sources = Array.from(new Set(sourcesArg));
     const targets = targetFiles.map((f) => fs_1.default.realpathSync(path_1.default.resolve(f)));
     const deadends = new Set(targets);
+    options.externalsSet = new Set(options.externals);
     return { sources, deadends, options };
 }
 /*

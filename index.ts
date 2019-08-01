@@ -13,19 +13,31 @@ export type Options = {
   extensions?: string[]
   onMiss?: OnMiss
   filter?: (f: string) => boolean
+  externals?: string[]
+  externalsSet?: Set<string>
+}
+
+export type ROptions = {
+  extensions: string[]
+  onMiss: OnMiss
+  filter: (f: string) => boolean
+  externals: string[]
+  externalsSet: Set<string>
 }
 
 const DEFAULT_OPTIONS = {
   filter: (f: string) => f.indexOf('node_modules') === -1 && !f.endsWith('.css'),
+  externals: [],
 }
 
 function prepare(sourceFiles: string[], targetFiles: string[], optionsArg: Options = {}) {
-  const options = { ...DEFAULT_OPTIONS, ...optionsArg }
+  const options = { ...DEFAULT_OPTIONS, ...optionsArg } as ROptions
   const sourcesArg = sourceFiles.map((f: string) => fs.realpathSync(path.resolve(f)))
   // dedupe
   const sources = Array.from(new Set(sourcesArg))
   const targets = targetFiles.map((f: string) => fs.realpathSync(path.resolve(f)))
   const deadends = new Set(targets)
+  options.externalsSet = new Set(options.externals)
 
   return { sources, deadends, options }
 }

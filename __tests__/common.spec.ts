@@ -46,3 +46,16 @@ describe('onMiss', () => {
     expect(dep).toEqual('missing-lib')
   })
 })
+
+describe('externals', () => {
+  it('Must not process thru externals', () => {
+    const sources = mf(['externals/a.js'])
+    let result = filterDependentSync(sources, mf(['externals/c.js']))
+
+    expect(result).toEqual(mf(['externals/a.js']))
+
+    result = filterDependentSync(sources, mf(['externals/c.js']), { externals: ['./b'] })
+
+    expect(result).toEqual([])
+  })
+})

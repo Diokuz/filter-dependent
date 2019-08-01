@@ -1,7 +1,7 @@
 /**
  * Graph
  */
-import { Options } from '.';
+import { ROptions } from '.';
 declare type Fn = string;
 declare type NodeId = Fn;
 interface Node {
@@ -17,11 +17,11 @@ export declare type Graph = Map<string, Node>;
  * @param sourceFiles filenames – starting nodes for graph
  * @param options { onMiss } – callback for unresolved files
  */
-export declare function collectGraphSync(sourceFiles: string[], options?: Options): {
+export declare function collectGraphSync(sourceFiles: string[], options: ROptions): {
     graph: Graph;
     timings: any;
 };
-export declare function collectGraph(sourceFiles: string[], options?: Options): Promise<{
+export declare function collectGraph(sourceFiles: string[], options: ROptions): Promise<{
     graph: Graph;
     timings: any;
 }>;

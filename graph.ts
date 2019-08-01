@@ -8,7 +8,7 @@ import util from 'util'
 import resolve from 'resolve'
 import precinct from 'precinct'
 import debug from 'debug'
-import { Options } from '.'
+import { ROptions } from '.'
 
 type Fn = string
 type NodeId = Fn // absolute filename
@@ -41,7 +41,7 @@ let realpathTime = BigInt(0)
  * @param sourceFiles filenames – starting nodes for graph
  * @param options { onMiss } – callback for unresolved files
  */
-export function collectGraphSync(sourceFiles: string[], options: Options = {}): { graph: Graph; timings: any } {
+export function collectGraphSync(sourceFiles: string[], options: ROptions): { graph: Graph; timings: any } {
   log(`got sourceFiles`, sourceFiles)
   resolveTime = BigInt(0)
   cacheResolveTime = BigInt(0)
@@ -67,7 +67,7 @@ export function collectGraphSync(sourceFiles: string[], options: Options = {}): 
   return buildGraphSync(result, graph, options)
 }
 
-function buildGraphSync(sources: Fn[], graph: Graph, options: Options, parent?: Fn): { graph: Graph; timings: any } {
+function buildGraphSync(sources: Fn[], graph: Graph, options: ROptions, parent?: Fn): { graph: Graph; timings: any } {
   sources.forEach((fn: Fn) => {
     log(`processing "${fn}"`)
 
@@ -114,9 +114,11 @@ function buildGraphSync(sources: Fn[], graph: Graph, options: Options, parent?: 
   return { graph, timings }
 }
 
-function getDepsSync(fn: Fn, options: any): Fn[] {
+function getDepsSync(fn: Fn, options: ROptions): Fn[] {
   log(`getting deps for "${fn}"`)
-  const imports: string[] = precinct.paperwork(fn).filter((dep: string) => !COREM.has(dep))
+  const imports: string[] = precinct.paperwork(fn).filter((dep: string) => {
+    return !COREM.has(dep) && !options.externalsSet.has(dep)
+  })
   log(`imports`, imports)
 
   const resolvedDeps = imports.map((dep: Fn): Fn | null => {
@@ -226,10 +228,7 @@ const fsp = {
   lstat: util.promisify(fs.lstat),
 }
 
-export async function collectGraph(
-  sourceFiles: string[],
-  options: Options = {}
-): Promise<{ graph: Graph; timings: any }> {
+export async function collectGraph(sourceFiles: string[], options: ROptions): Promise<{ graph: Graph; timings: any }> {
   log(`start of collectGraph`)
 
   const graph = new Map<string, Node>()
@@ -246,7 +245,7 @@ export async function collectGraph(
 async function buildGraph(
   sources: Fn[],
   graph: Graph,
-  options: Options,
+  options: ROptions,
   parent?: Fn
 ): Promise<{ graph: Graph; timings: any }> {
   await Promise.all(
@@ -266,7 +265,7 @@ async function buildGraph(
         return
       }
 
-      let deps = await getDeps(fn, { onMiss: () => {} })
+      let deps = await getDeps(fn, options)
 
       if (options.filter) {
         deps = deps.filter(options.filter)
@@ -311,9 +310,11 @@ async function cacheResolve(dep: string, fn: Fn): Promise<Fn> {
   return cache[key].resolvedRealPath
 }
 
-async function getDeps(fn: Fn, options: any): Promise<Fn[]> {
+async function getDeps(fn: Fn, options: ROptions): Promise<Fn[]> {
   dlog(`getting deps for "${fn}"`)
-  const imports: string[] = precinct.paperwork(fn).filter((dep: string) => !COREM.has(dep))
+  const imports: string[] = precinct.paperwork(fn).filter((dep: string) => {
+    return !COREM.has(dep) && !options.externalsSet.has(dep)
+  })
   dlog(`imports`, imports)
 
   const resolvedDeps = await Promise.all(

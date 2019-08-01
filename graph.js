@@ -37,7 +37,7 @@ let realpathTime = BigInt(0);
  * @param sourceFiles filenames – starting nodes for graph
  * @param options { onMiss } – callback for unresolved files
  */
-function collectGraphSync(sourceFiles, options = {}) {
+function collectGraphSync(sourceFiles, options) {
     log(`got sourceFiles`, sourceFiles);
     resolveTime = BigInt(0);
     cacheResolveTime = BigInt(0);
@@ -95,7 +95,9 @@ function buildGraphSync(sources, graph, options, parent) {
 }
 function getDepsSync(fn, options) {
     log(`getting deps for "${fn}"`);
-    const imports = precinct_1.default.paperwork(fn).filter((dep) => !COREM.has(dep));
+    const imports = precinct_1.default.paperwork(fn).filter((dep) => {
+        return !COREM.has(dep) && !options.externalsSet.has(dep);
+    });
     log(`imports`, imports);
     const resolvedDeps = imports.map((dep) => {
         try {
@@ -185,7 +187,7 @@ const fsp = {
     exists: util_1.default.promisify(fs_1.default.exists),
     lstat: util_1.default.promisify(fs_1.default.lstat),
 };
-function collectGraph(sourceFiles, options = {}) {
+function collectGraph(sourceFiles, options) {
     return __awaiter(this, void 0, void 0, function* () {
         log(`start of collectGraph`);
         const graph = new Map();
@@ -212,7 +214,7 @@ function buildGraph(sources, graph, options, parent) {
                 }
                 return;
             }
-            let deps = yield getDeps(fn, { onMiss: () => { } });
+            let deps = yield getDeps(fn, options);
             if (options.filter) {
                 deps = deps.filter(options.filter);
             }
@@ -249,7 +251,9 @@ function cacheResolve(dep, fn) {
 function getDeps(fn, options) {
     return __awaiter(this, void 0, void 0, function* () {
         dlog(`getting deps for "${fn}"`);
-        const imports = precinct_1.default.paperwork(fn).filter((dep) => !COREM.has(dep));
+        const imports = precinct_1.default.paperwork(fn).filter((dep) => {
+            return !COREM.has(dep) && !options.externalsSet.has(dep);
+        });
         dlog(`imports`, imports);
         const resolvedDeps = yield Promise.all(imports.map((dep) => __awaiter(this, void 0, void 0, function* () {
             try {
