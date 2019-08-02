@@ -1,5 +1,5 @@
 const path = require('path')
-const { collectGraph } = require('../graph')
+const { collectGraph } = require('../lib/graph')
 const debug = require('debug')
 const log = debug('timings')
 

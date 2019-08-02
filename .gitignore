@@ -9,7 +9,5 @@ npm-debug.log*
 
 yarn-error.log
 
-**/__diff_snapshots__
-**/.tmpTestsPath
-
 __tests__/__fixtures__/extra
+/lib

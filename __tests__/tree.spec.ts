@@ -1,6 +1,6 @@
 import path from 'path'
 // @ts-ignore
-import { filterDependentSync } from '../index.ts'
+import { filterDependentSync } from '../src/index.ts'
 
 function mf(fns: string[]) {
   return fns.map(f => path.resolve(process.cwd(), '__tests__', '__fixtures__', f))
