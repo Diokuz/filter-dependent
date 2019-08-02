@@ -5,8 +5,8 @@
 import fs from 'fs'
 import path from 'path'
 import util from 'util'
-import resolve from 'resolve'
 import precinct from 'precinct'
+import resolve, { getTimings } from './cached-resolve'
 import debug from 'debug'
 import { ROptions } from '.'
 
@@ -104,11 +104,13 @@ function buildGraphSync(sources: Fn[], graph: Graph, options: ROptions, parent?:
     buildGraphSync(deps, graph, options, fn)
   })
 
+  const cachedTimings = getTimings()
+
   const timings = {
-    resolveTime,
+    resolveTime: resolveTime + cachedTimings.resolveTime,
+    realpathTime: realpathTime + cachedTimings.realpathTime,
     cacheResolveTime,
     getDepsTime,
-    realpathTime,
   }
 
   return { graph, timings }
@@ -124,17 +126,13 @@ function getDepsSync(fn: Fn, options: ROptions): Fn[] {
   const resolvedDeps = imports.map((dep: Fn): Fn | null => {
     try {
       const tx = process.hrtime.bigint()
-      const result = cacheResolveSync(dep, {
+      const result = resolve.sync(dep, {
         basedir: path.dirname(fn),
         extensions: EXTS,
       })
       cacheResolveTime += process.hrtime.bigint() - tx
 
-      const ty = process.hrtime.bigint()
-      const ret = fs.realpathSync(result)
-      realpathTime += process.hrtime.bigint() - ty
-
-      return ret
+      return result
     } catch (e) {
       log(`failed to resolve "${dep}"`)
       if (options.onMiss) {
@@ -156,66 +154,6 @@ function getDepsSync(fn: Fn, options: ROptions): Fn[] {
   log(`finalDeps`, finalDeps)
 
   return finalDeps
-}
-
-const cache: Record<string, { resolved: string; resolvedRealPath: string }> = {}
-
-const presolve = util.promisify(resolve)
-
-function populateCache(dep: string, basedir: string, resolved: Fn, resolvedRealPath: Fn) {
-  // Preventive caching
-  // dep:      'react'
-  // fn:       '/project/src/utils/qwe.js'
-  // resolved: '/project/node_modules/react/index.js'
-  // key:      '/project/src/utils/>>>react'
-  // key2:     '/project/src/>>>react'
-  // key3:     '/project/>>>react'
-
-  if (dep[0] !== '.' && dep[0] !== '/') {
-    let base = basedir
-    let resolvedBase = resolved.slice(0, resolved.indexOf('/node_modules'))
-
-    while (base.length >= resolvedBase.length) {
-      let kkey = base + '>>>' + dep
-
-      if (!cache[kkey]) {
-        cache[kkey] = {
-          resolved,
-          resolvedRealPath,
-        }
-      }
-
-      base = base.slice(0, base.lastIndexOf('/'))
-    }
-  } else {
-    cache[basedir + '>>>' + dep] = {
-      resolved,
-      resolvedRealPath,
-    }
-  }
-}
-
-function cacheResolveSync(dep: string, { basedir, extensions }: any): Fn {
-  const key = basedir + '>>>' + dep
-  let resolved
-  let resolvedRealPath
-
-  if (!cache[key]) {
-    const tx = process.hrtime.bigint()
-    resolved = resolve.sync(dep, {
-      basedir,
-      extensions,
-    })
-    resolveTime += process.hrtime.bigint() - tx
-
-    const ty = process.hrtime.bigint()
-    resolvedRealPath = fs.realpathSync(resolved)
-    realpathTime += process.hrtime.bigint() - ty
-
-    populateCache(dep, basedir, resolved, resolvedRealPath)
-  }
-
-  return cache[key].resolvedRealPath
 }
 
 /**
@@ -289,27 +227,6 @@ async function buildGraph(
   return { graph, timings }
 }
 
-async function cacheResolve(dep: string, fn: Fn): Promise<Fn> {
-  const basedir = path.dirname(fn)
-  const key = basedir + '>>>' + dep
-  let resolved
-  let resolvedRealPath
-
-  if (!cache[key]) {
-    // @ts-ignore
-    resolved = await presolve(dep, {
-      basedir,
-      extensions: EXTS,
-    })
-
-    resolvedRealPath = await fsp.realpath(resolved)
-
-    populateCache(dep, basedir, resolved, resolvedRealPath)
-  }
-
-  return cache[key].resolvedRealPath
-}
-
 async function getDeps(fn: Fn, options: ROptions): Promise<Fn[]> {
   dlog(`getting deps for "${fn}"`)
   const imports: string[] = precinct.paperwork(fn).filter((dep: string) => {
@@ -321,14 +238,10 @@ async function getDeps(fn: Fn, options: ROptions): Promise<Fn[]> {
     imports.map(
       async (dep: Fn): Promise<Fn | null> => {
         try {
-          // @ts-ignore
-          // const result = presolve.sync(dep, {
-          //   basedir: path.dirname(fn),
-          //   extensions: EXTS,
-          // })
-          // const retVal = fsp.realpath(result)
-
-          const retVal = await cacheResolve(dep, fn)
+          const retVal = await resolve(dep, {
+            basedir: path.dirname(fn),
+            extensions: EXTS,
+          })
 
           return retVal
         } catch (e) {
