@@ -1,9 +1,10 @@
 import path from 'path'
 // @ts-ignore
 import filterDependent from '../src/index.ts'
+import { pathToUnixPath } from '../src/utils'
 
 function mf(fns: string[]) {
-  return fns.map(f => path.resolve(process.cwd(), '__tests__', '__fixtures__', f))
+  return fns.map((f) => pathToUnixPath(path.resolve(process.cwd(), '__tests__', '__fixtures__', f)))
 }
 
 describe('Tree', () => {

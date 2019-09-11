@@ -1,5 +1,6 @@
 import fs from 'fs'
 import resolve from 'resolve'
+import { pathToUnixPath } from './utils'
 
 const cache: Record<string, { resolved: string; resolvedRealPath: string }> = {}
 
@@ -47,11 +48,11 @@ function cacheResolveSync(dep: string, options: any): string {
 
   if (!cache[key]) {
     const tx = process.hrtime.bigint()
-    resolved = resolve.sync(dep, options)
+    resolved = pathToUnixPath(resolve.sync(dep, options))
     resolveTime += process.hrtime.bigint() - tx
 
     const ty = process.hrtime.bigint()
-    resolvedRealPath = fs.realpathSync(resolved)
+    resolvedRealPath = pathToUnixPath(fs.realpathSync(resolved))
     realpathTime += process.hrtime.bigint() - ty
 
     populateCache(dep, basedir, resolved, resolvedRealPath)

@@ -3,6 +3,7 @@ import path from 'path'
 import debug from 'debug'
 
 import { collectGraphSync, collectGraph, findChild, traverseParents } from './graph'
+import { pathToUnixPath } from './utils'
 
 const log = debug('fd')
 const tlog = debug('timings:fd')
@@ -32,10 +33,10 @@ const DEFAULT_OPTIONS = {
 
 function prepare(sourceFiles: string[], targetFiles: string[], optionsArg: Options = {}) {
   const options = { ...DEFAULT_OPTIONS, ...optionsArg } as ROptions
-  const sourcesArg = sourceFiles.map((f: string) => fs.realpathSync(path.resolve(f)))
+  const sourcesArg = sourceFiles.map((f: string) => pathToUnixPath(fs.realpathSync(path.resolve(f))))
   // dedupe
   const sources = Array.from(new Set(sourcesArg))
-  const targets = targetFiles.map((f: string) => fs.realpathSync(path.resolve(f)))
+  const targets = targetFiles.map((f: string) => pathToUnixPath(fs.realpathSync(path.resolve(f))))
   const deadends = new Set(targets)
   options.externalsSet = new Set(options.externals)
 

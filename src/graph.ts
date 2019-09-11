@@ -7,6 +7,7 @@ import path from 'path'
 import util from 'util'
 import precinct from 'precinct'
 import resolve, { getTimings } from './cached-resolve'
+import { pathToUnixPath } from './utils'
 import debug from 'debug'
 import { ROptions } from '.'
 
@@ -49,7 +50,7 @@ export function collectGraphSync(sourceFiles: string[], options: ROptions): { gr
   realpathTime = BigInt(0)
 
   const graph = new Map<string, Node>()
-  const sourcesArg = sourceFiles.map((f: Fn) => fs.realpathSync(path.resolve(f)))
+  const sourcesArg = sourceFiles.map((f: Fn) => pathToUnixPath(fs.realpathSync(path.resolve(f))))
   // dedupe
   const sources = Array.from(new Set(sourcesArg))
   let result = sources
@@ -170,7 +171,12 @@ export async function collectGraph(sourceFiles: string[], options: ROptions): Pr
   log(`start of collectGraph`)
 
   const graph = new Map<string, Node>()
-  const sourcesArg = await Promise.all(sourceFiles.map(async (f: Fn) => fsp.realpath(path.resolve(f))))
+  const sourcesArg = await Promise.all(
+    sourceFiles.map(async (f: Fn) => {
+      const res = await fsp.realpath(path.resolve(f))
+      return pathToUnixPath(res)
+    })
+  )
   log(`sourcesArg`, sourcesArg)
   // dedupe
   const sources = Array.from(new Set(sourcesArg))
