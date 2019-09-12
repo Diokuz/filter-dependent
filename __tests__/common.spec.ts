@@ -1,9 +1,10 @@
 import path from 'path'
 // @ts-ignore
 import { filterDependentSync } from '../src/index.ts'
+import { pathToUnixPath } from '../src/utils'
 
 function mf(fns: string[]) {
-  return fns.map(f => path.resolve(process.cwd(), '__tests__', '__fixtures__', f))
+  return fns.map((f) => pathToUnixPath(path.resolve(process.cwd(), '__tests__', '__fixtures__', f)))
 }
 
 describe('Common', () => {
@@ -37,7 +38,7 @@ describe('onMiss', () => {
     let fn
     let dep
     const onMiss = (f: string, d: string) => {
-      fn = f.replace(process.cwd(), '')
+      fn = f.replace(pathToUnixPath(process.cwd()), '')
       dep = d
     }
     filterDependentSync(sources, targets, { onMiss })
