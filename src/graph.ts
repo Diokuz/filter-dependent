@@ -119,7 +119,7 @@ function buildGraphSync(sources: Fn[], graph: Graph, options: ROptions, parent?:
 
 function getDepsSync(fn: Fn, options: ROptions): Fn[] {
   log(`getting deps for "${fn}"`)
-  const imports: string[] = precinct.paperwork(fn).filter((dep: string) => {
+  const imports: string[] = precinct.paperwork(fn, { es6: { mixedImports: true } }).filter((dep: string) => {
     return !COREM.has(dep) && !options.externalsSet.has(dep)
   })
   log(`imports`, imports)
@@ -235,7 +235,7 @@ async function buildGraph(
 
 async function getDeps(fn: Fn, options: ROptions): Promise<Fn[]> {
   dlog(`getting deps for "${fn}"`)
-  const imports: string[] = precinct.paperwork(fn).filter((dep: string) => {
+  const imports: string[] = precinct.paperwork(fn, { es6: { mixedImports: true } }).filter((dep: string) => {
     return !COREM.has(dep) && !options.externalsSet.has(dep)
   })
   dlog(`imports`, imports)

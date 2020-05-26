@@ -55,6 +55,42 @@ describe('Tree', () => {
     expect(result).toEqual(expected)
   })
 
+  it('es6 and cjs mixed, es6 first - check es6', () => {
+    const sources = mf(['imports/d.js'])
+    const targets = mf(['imports/a.js'])
+    const expected = sources
+    const result = filterDependentSync(sources, targets)
+
+    expect(result).toEqual(expected)
+  })
+
+  it('es6 and cjs mixed, es6 first - check cjs', () => {
+    const sources = mf(['imports/d.js'])
+    const targets = mf(['imports/f.js'])
+    const expected = sources
+    const result = filterDependentSync(sources, targets)
+
+    expect(result).toEqual(expected)
+  })
+
+  it('es6 and cjs mixed, es6 first - check es6', () => {
+    const sources = mf(['imports/e.js'])
+    const targets = mf(['imports/a.js'])
+    const expected = sources
+    const result = filterDependentSync(sources, targets)
+
+    expect(result).toEqual(expected)
+  })
+
+  it('es6 and cjs mixed, es6 first - check cjs', () => {
+    const sources = mf(['imports/e.js'])
+    const targets = mf(['imports/f.js'])
+    const expected = sources
+    const result = filterDependentSync(sources, targets)
+
+    expect(result).toEqual(expected)
+  })
+
   it('chain in source files', () => {
     const sources = mf(['imports/a.js', 'imports/b.js'])
     const targets = mf(['imports/c.js'])
