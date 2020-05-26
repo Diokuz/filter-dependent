@@ -6,7 +6,7 @@
   "author": "Diokuz",
   "license": "MIT",
   "dependencies": {
-    "precinct": "^6.1.2",
+    "precinct": "^6.2.0",
     "resolve": "^1.11.1"
   },
   "devDependencies": {
