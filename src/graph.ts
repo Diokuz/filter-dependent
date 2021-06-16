@@ -241,27 +241,25 @@ async function getDeps(fn: Fn, options: ROptions): Promise<Fn[]> {
   dlog(`imports`, imports)
 
   const resolvedDeps = await Promise.all(
-    imports.map(
-      async (dep: Fn): Promise<Fn | null> => {
-        try {
-          const retVal = await resolve(dep, {
-            basedir: path.dirname(fn),
-            extensions: EXTS,
-          })
+    imports.map(async (dep: Fn): Promise<Fn | null> => {
+      try {
+        const retVal = await resolve(dep, {
+          basedir: path.dirname(fn),
+          extensions: EXTS,
+        })
 
-          return retVal
-        } catch (e) {
-          dlog(`failed to resolve "${dep}"`)
-          if (options.onMiss) {
-            options.onMiss(fn, dep)
-          } else {
-            throw new Error(`Cannot resolve "${dep}" from:\n"${fn}"`)
-          }
+        return retVal
+      } catch (e) {
+        dlog(`failed to resolve "${dep}"`)
+        if (options.onMiss) {
+          options.onMiss(fn, dep)
+        } else {
+          throw new Error(`Cannot resolve "${dep}" from:\n"${fn}"`)
         }
-
-        return null
       }
-    )
+
+      return null
+    })
   )
 
   dlog(`resolvedDeps`, resolvedDeps)

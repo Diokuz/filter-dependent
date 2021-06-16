@@ -1,23 +1,23 @@
 {
   "name": "filter-dependent",
-  "version": "2.2.2",
+  "version": "2.2.3",
   "main": "lib/index.js",
   "description": "Filters a list of files, leaving only those which transitively dependent on any of the files from the second list",
   "author": "Diokuz",
   "license": "MIT",
   "dependencies": {
-    "precinct": "^6.2.0",
-    "resolve": "^1.11.1"
+    "precinct": "^8.1.0",
+    "resolve": "^1.20.0"
   },
   "devDependencies": {
-    "@types/debug": "^4.1.4",
-    "@types/jest": "^24.0.15",
-    "@types/node": "^12.0.12",
-    "@types/resolve": "^0.0.8",
-    "debug": "^4.1.1",
-    "fs-extra": "^8.1.0",
-    "jest": "^24.8.0",
-    "prettier": "1.18.2",
-    "ts-jest": "^24.0.2"
+    "@types/debug": "^4.1.5",
+    "@types/jest": "^26.0.23",
+    "@types/node": "^15.12.2",
+    "@types/resolve": "^1.20.0",
+    "debug": "^4.3.1",
+    "fs-extra": "^10.0.0",
+    "jest": "^27.0.4",
+    "prettier": "2.3.1",
+    "ts-jest": "^27.0.3"
   }
 }
